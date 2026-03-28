@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SeniorTalent{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      color: #1a1a1a;
+      background: #f7f7f5;
+      line-height: 1.6;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      background: #fff;
+      border-bottom: 1px solid #e5e5e3;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      height: 58px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .navbar-logo {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+      text-decoration: none;
+    }
+    .navbar-logo span { color: #5349B7; }
+    .navbar-pais {
+      font-size: 12px;
+      color: #888;
+      margin-left: 8px;
+    }
+    .navbar-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-left: auto;
+    }
+    .navbar-nav a {
+      font-size: 14px;
+      color: #555;
+      text-decoration: none;
+    }
+    .navbar-nav a:hover { color: #1a1a1a; }
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: all .15s;
+    }
+    .btn-primary {
+      background: #5349B7;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #3C3489; }
+    .btn-outline {
+      background: transparent;
+      color: #5349B7;
+      border: 1px solid #AFA9EC;
+    }
+    .btn-outline:hover { background: #EEEDFE; }
+
+    /* MENSAJES */
+    .messages { padding: 12px 24px 0; }
+    .message {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .message.success { background: #E1F5EE; color: #0F6E56; }
+    .message.error   { background: #FCEBEB; color: #A32D2D; }
+    .message.info    { background: #EEEDFE; color: #3C3489; }
+
+    /* CONTENIDO */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* FOOTER */
+    .footer {
+      background: #fff;
+      border-top: 1px solid #e5e5e3;
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #888;
+      margin-top: 60px;
+    }
+    .footer a { color: #5349B7; text-decoration: none; }
+
+    /* UTILIDADES */
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 12px;
+    }
+    .tag-exp  { background: #EEEDFE; color: #3C3489; }
+    .tag-sec  { background: #E1F5EE; color: #0F6E56; }
+    .tag-city { background: #F1EFE8; color: #444441; }
+    .tag-open { background: #E1F5EE; color: #0F6E56; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e5e3;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      transition: border-color .15s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #5349B7;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="{% url 'home' %}" class="navbar-logo">
+    Senior<span>Talent</span>
+  </a>
+  <span class="navbar-pais">· {{ pais_nombre }}</span>
+
+  <div class="navbar-nav">
+    <a href="{% url 'directorio' %}">Directorio</a>
+
+    {% if user.is_authenticated %}
+      {% if user.tipo == 'candidato' %}
+        <a href="{% url 'dashboard' %}">Mi perfil</a>
+      {% else %}
+        <a href="{% url 'empresa_candidatos' %}">Mis candidatos</a>
+      {% endif %}
+      <a href="{% url 'logout' %}">Salir</a>
+    {% else %}
+      <a href="{% url 'login' %}">Iniciar sesión</a>
+      <a href="{% url 'registro_candidato' %}" class="btn btn-outline">Soy profesional</a>
+      <a href="{% url 'registro_empresa' %}" class="btn btn-primary">Soy empresa</a>
+    {% endif %}
+  </div>
+</nav>
+
+{% if messages %}
+<div class="messages">
+  {% for message in messages %}
+    <div class="message {{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+<footer class="footer">
+  <p>© 2026 SeniorTalent · Talento senior de Latinoamérica</p>
+  <p style="margin-top:6px;">
+    <a href="#">Términos</a> · 
+    <a href="#">Privacidad</a> · 
+    <a href="#">Contacto</a>
+  </p>
+</footer>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

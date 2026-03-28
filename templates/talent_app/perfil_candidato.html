@@ -1,0 +1,388 @@
+{% extends 'talent_app/base.html' %}
+
+{% block title %}{{ candidato.nombre }} · SeniorTalent{% endblock %}
+
+{% block extra_css %}
+<style>
+  .perfil-wrap {
+    max-width: 900px;
+    margin: 32px auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  /* COLUMNA IZQUIERDA */
+  .perfil-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+  }
+  .perfil-card {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .perfil-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #EEEDFE;
+    color: #3C3489;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 auto 16px;
+    overflow: hidden;
+  }
+  .perfil-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .perfil-nombre {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .perfil-cargo {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 16px;
+  }
+  .perfil-meta {
+    font-size: 13px;
+    color: #555;
+    text-align: left;
+    border-top: 1px solid #e5e5e3;
+    padding-top: 16px;
+  }
+  .perfil-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .perfil-meta-label {
+    color: #888;
+    font-size: 12px;
+    min-width: 80px;
+  }
+
+  .btn-descargar {
+    width: 100%;
+    padding: 12px;
+    background: #5349B7;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 8px;
+    transition: background .15s;
+  }
+  .btn-descargar:hover { background: #3C3489; }
+  .btn-ya-pago {
+    width: 100%;
+    padding: 12px;
+    background: #E1F5EE;
+    color: #0F6E56;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .precio-info {
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+  }
+
+  /* COLUMNA DERECHA */
+  .perfil-main { flex: 1; }
+  .seccion {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .seccion h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e5e3;
+  }
+  .resumen-texto {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.7;
+  }
+
+  .exp-item {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f0ee;
+  }
+  .exp-item:last-child { border-bottom: none; }
+  .exp-años {
+    font-size: 12px;
+    color: #888;
+    min-width: 80px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .exp-info {}
+  .exp-cargo {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 2px;
+  }
+  .exp-empresa {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  .exp-desc {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.5;
+  }
+
+  .edu-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0ee;
+  }
+  .edu-item:last-child { border-bottom: none; }
+  .edu-titulo {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .edu-inst {
+    font-size: 13px;
+    color: #666;
+  }
+
+  .habilidades-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .habilidad-tag {
+    background: #f7f7f5;
+    border: 1px solid #e5e5e3;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: #444;
+  }
+
+  .idioma-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0ee;
+    font-size: 14px;
+  }
+  .idioma-item:last-child { border-bottom: none; }
+  .idioma-nivel {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: #EEEDFE;
+    color: #3C3489;
+    font-weight: 500;
+  }
+
+  .sectores-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .bloque-privado {
+    background: #f7f7f5;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: #888;
+    font-size: 14px;
+  }
+  .bloque-privado p { margin-bottom: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="perfil-wrap">
+
+  <!-- SIDEBAR IZQUIERDO -->
+  <div class="perfil-sidebar">
+    <div class="perfil-card">
+      <div class="perfil-avatar">
+        {% if candidato.foto %}
+          <img src="{{ candidato.foto.url }}" alt="{{ candidato.nombre }}">
+        {% else %}
+          {{ candidato.iniciales }}
+        {% endif %}
+      </div>
+      <div class="perfil-nombre">{{ candidato.nombre }}</div>
+      <div class="perfil-cargo">{{ candidato.cargo_actual }}</div>
+
+      <div class="perfil-meta">
+        <div class="perfil-meta-item">
+          <span class="perfil-meta-label">País</span>
+          <span>{{ candidato.pais.nombre }}</span>
+        </div>
+        <div class="perfil-meta-item">
+          <span class="perfil-meta-label">Ciudad</span>
+          <span>{{ candidato.ciudad }}</span>
+        </div>
+        <div class="perfil-meta-item">
+          <span class="perfil-meta-label">Experiencia</span>
+          <span>{{ candidato.años_experiencia }} años</span>
+        </div>
+        <div class="perfil-meta-item">
+          <span class="perfil-meta-label">Modalidad</span>
+          <span>{{ candidato.get_modalidad_display }}</span>
+        </div>
+        <div class="perfil-meta-item">
+          <span class="perfil-meta-label">Disponible</span>
+          <span>{{ candidato.get_disponibilidad_display }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTÓN DESCARGA -->
+    {% if user.is_authenticated and user.tipo == 'empresa' %}
+      {% if ya_pago %}
+        <span class="btn-ya-pago">✓ CV ya descargado</span>
+      {% else %}
+        <a href="{% url 'iniciar_pago' candidato.pk %}" class="btn-descargar">
+          Descargar CV — $5 USD
+        </a>
+        <p class="precio-info">Pago único · Recibes el CV completo con datos de contacto</p>
+      {% endif %}
+    {% elif not user.is_authenticated %}
+      <a href="{% url 'registro_empresa' %}" class="btn-descargar">
+        Regístrate para descargar CV
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="perfil-main">
+
+    {% if candidato.resumen %}
+    <div class="seccion">
+      <h2>Resumen profesional</h2>
+      <p class="resumen-texto">{{ candidato.resumen }}</p>
+    </div>
+    {% endif %}
+
+    {% if candidato.sectores.all %}
+    <div class="seccion">
+      <h2>Sectores de experiencia</h2>
+      <div class="sectores-wrap">
+        {% for sector in candidato.sectores.all %}
+          <span class="tag tag-sec">{{ sector.nombre }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if candidato.habilidades %}
+    <div class="seccion">
+      <h2>Habilidades clave</h2>
+      <div class="habilidades-wrap">
+        {% for habilidad in candidato.habilidades %}
+          <span class="habilidad-tag">{{ habilidad }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if candidato.idiomas.all %}
+    <div class="seccion">
+      <h2>Idiomas</h2>
+      {% for idioma in candidato.idiomas.all %}
+        <div class="idioma-item">
+          <span>{{ idioma.idioma }}</span>
+          <span class="idioma-nivel">{{ idioma.get_nivel_display }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if candidato.experiencias.all %}
+    <div class="seccion">
+      <h2>Experiencia laboral</h2>
+      {% for exp in candidato.experiencias.all %}
+        <div class="exp-item">
+          <div class="exp-años">
+            {{ exp.año_inicio }} –
+            {% if exp.año_fin %}{{ exp.año_fin }}{% else %}Hoy{% endif %}
+          </div>
+          <div class="exp-info">
+            <div class="exp-cargo">{{ exp.cargo }}</div>
+            <div class="exp-empresa">{{ exp.empresa }}</div>
+            {% if exp.descripcion %}
+              <div class="exp-desc">{{ exp.descripcion }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if candidato.educaciones.all %}
+    <div class="seccion">
+      <h2>Educación</h2>
+      {% for edu in candidato.educaciones.all %}
+        <div class="edu-item">
+          <div class="edu-titulo">{{ edu.titulo }}</div>
+          <div class="edu-inst">
+            {{ edu.institucion }}
+            {% if edu.año_fin %} · {{ edu.año_fin }}{% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- DATOS DE CONTACTO — solo si ya pagó -->
+    <div class="seccion">
+      <h2>Datos de contacto</h2>
+      {% if ya_pago %}
+        <p style="font-size:14px;color:#444;">
+          Correo: <strong>{{ candidato.usuario.email }}</strong>
+        </p>
+      {% else %}
+        <div class="bloque-privado">
+          <p>Los datos de contacto están disponibles después de descargar el CV.</p>
+          <p style="font-size:12px;margin-top:4px;">Pago único de $5 USD</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

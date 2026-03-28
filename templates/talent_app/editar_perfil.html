@@ -1,0 +1,295 @@
+{% extends 'talent_app/base.html' %}
+
+{% block title %}Editar perfil · SeniorTalent{% endblock %}
+
+{% block extra_css %}
+<style>
+  .editar-wrap {
+    max-width: 760px;
+    margin: 32px auto;
+    padding: 0 24px;
+  }
+  .editar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .editar-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .seccion {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .seccion h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e5e3;
+  }
+  .form-row {
+    display: flex;
+    gap: 16px;
+  }
+  .form-row .form-group { flex: 1; }
+  .form-group small {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 4px;
+    display: block;
+  }
+  .sectores-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sector-check {
+    display: none;
+  }
+  .sector-label {
+    padding: 7px 14px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+  }
+  .sector-check:checked + .sector-label {
+    background: #EEEDFE;
+    border-color: #AFA9EC;
+    color: #3C3489;
+    font-weight: 500;
+  }
+  .foto-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #EEEDFE;
+    color: #3C3489;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .foto-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Experiencias dinámicas */
+  .exp-item-form {
+    background: #f7f7f5;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .btn-remove {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .btn-remove:hover { color: #A32D2D; }
+  .btn-agregar {
+    background: transparent;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    width: 100%;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-agregar:hover {
+    border-color: #AFA9EC;
+    color: #5349B7;
+  }
+  .btn-guardar {
+    width: 100%;
+    padding: 14px;
+    background: #5349B7;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-guardar:hover { background: #3C3489; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="editar-wrap">
+
+  <div class="editar-header">
+    <h1>Editar mi perfil</h1>
+    <a href="{% url 'dashboard' %}" style="font-size:14px;color:#888;text-decoration:none;">← Volver</a>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="form-perfil">
+    {% csrf_token %}
+
+    <!-- INFORMACIÓN BÁSICA -->
+    <div class="seccion">
+      <h2>Información básica</h2>
+
+      <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div class="foto-preview" id="foto-preview">
+            {% if candidato.foto %}
+              <img src="{{ candidato.foto.url }}" id="foto-img">
+            {% else %}
+              <span id="foto-iniciales">{{ candidato.iniciales }}</span>
+            {% endif %}
+          </div>
+          <input type="file" name="foto" id="foto-input" accept="image/*" style="display:none">
+          <button type="button" onclick="document.getElementById('foto-input').click()"
+                  style="font-size:12px;color:#5349B7;background:none;border:none;cursor:pointer;">
+            Cambiar foto
+          </button>
+        </div>
+        <div style="flex:1;">
+          <div class="form-group">
+            <label>Nombre completo</label>
+            <input type="text" name="nombre" class="form-control"
+                   value="{{ candidato.nombre }}" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cargo actual o último cargo</label>
+          <input type="text" name="cargo_actual" class="form-control"
+                 value="{{ candidato.cargo_actual }}"
+                 placeholder="CFO, Director de Operaciones...">
+        </div>
+        <div class="form-group">
+          <label>Años de experiencia</label>
+          <input type="number" name="años_experiencia" class="form-control"
+                 value="{{ candidato.años_experiencia }}" min="10" max="60">
+          <small>Mínimo 10 años</small>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Ciudad</label>
+          <input type="text" name="ciudad" class="form-control"
+                 value="{{ candidato.ciudad }}" placeholder="Bogotá">
+        </div>
+        <div class="form-group">
+          <label>Disponibilidad</label>
+          <select name="disponibilidad" class="form-control">
+            <option value="inmediata" {% if candidato.disponibilidad == 'inmediata' %}selected{% endif %}>Disponible ahora</option>
+            <option value="1_mes" {% if candidato.disponibilidad == '1_mes' %}selected{% endif %}>En 1 mes</option>
+            <option value="freelance" {% if candidato.disponibilidad == 'freelance' %}selected{% endif %}>Solo freelance</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Modalidad</label>
+        <select name="modalidad" class="form-control">
+          <option value="presencial" {% if candidato.modalidad == 'presencial' %}selected{% endif %}>Presencial</option>
+          <option value="remoto" {% if candidato.modalidad == 'remoto' %}selected{% endif %}>Remoto</option>
+          <option value="hibrido" {% if candidato.modalidad == 'hibrido' %}selected{% endif %}>Híbrido</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="seccion">
+      <h2>Resumen profesional</h2>
+      <div class="form-group">
+        <textarea name="resumen" class="form-control" rows="4"
+                  placeholder="Describe tu trayectoria, logros principales y lo que te diferencia...">{{ candidato.resumen }}</textarea>
+        <small>3 a 5 líneas. La IA puede generarte un borrador al subir tu CV.</small>
+      </div>
+    </div>
+
+    <!-- SECTORES -->
+    <div class="seccion">
+      <h2>Sectores de experiencia</h2>
+      <div class="sectores-grid">
+        {% for sector in sectores %}
+          <input type="checkbox" class="sector-check"
+                 name="sectores" value="{{ sector.pk }}"
+                 id="sector-{{ sector.pk }}"
+                 {% if sector in candidato.sectores.all %}checked{% endif %}>
+          <label class="sector-label" for="sector-{{ sector.pk }}">
+            {{ sector.nombre }}
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- HABILIDADES -->
+    <div class="seccion">
+      <h2>Habilidades clave</h2>
+      <div class="form-group">
+        <input type="text" name="habilidades" class="form-control"
+               value="{{ candidato.habilidades|join:', ' }}"
+               placeholder="Liderazgo, Finanzas corporativas, Excel, Power BI...">
+        <small>Separa cada habilidad con una coma. Máximo 12.</small>
+      </div>
+    </div>
+
+    <!-- BOTÓN GUARDAR -->
+    <button type="submit" class="btn-guardar">Guardar cambios</button>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview foto
+document.getElementById('foto-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('foto-preview');
+    preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  };
+  reader.readAsDataURL(file);
+});
+
+// Pre-llenar desde IA si hay datos en sessionStorage
+window.addEventListener('load', function() {
+  const raw = sessionStorage.getItem('cv_datos');
+  if (!raw) return;
+  const datos = JSON.parse(raw);
+  sessionStorage.removeItem('cv_datos');
+
+  if (datos.cargo_actual) document.querySelector('[name=cargo_actual]').value = datos.cargo_actual;
+  if (datos.años_experiencia) document.querySelector('[name=años_experiencia]').value = datos.años_experiencia;
+  if (datos.ciudad) document.querySelector('[name=ciudad]').value = datos.ciudad;
+  if (datos.resumen) document.querySelector('[name=resumen]').value = datos.resumen;
+  if (datos.habilidades && datos.habilidades.length) {
+    document.querySelector('[name=habilidades]').value = datos.habilidades.join(', ');
+  }
+});
+</script>
+{% endblock %}

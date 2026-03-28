@@ -1,0 +1,252 @@
+{% extends 'talent_app/base.html' %}
+
+{% block title %}SeniorTalent · Talento senior de Latinoamérica{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero {
+    background: #fff;
+    border-bottom: 1px solid #e5e5e3;
+    padding: 60px 24px 48px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .hero h1 span { color: #5349B7; }
+  .hero p {
+    font-size: 17px;
+    color: #666;
+    margin-bottom: 32px;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .search-box {
+    display: flex;
+    gap: 8px;
+    max-width: 560px;
+    margin: 0 auto 20px;
+  }
+  .search-box input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #1a1a1a;
+  }
+  .search-box input:focus {
+    outline: none;
+    border-color: #5349B7;
+  }
+  .search-box button {
+    padding: 12px 24px;
+    background: #5349B7;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .search-box button:hover { background: #3C3489; }
+
+  .chips {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .chip {
+    padding: 6px 14px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #555;
+    background: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .chip:hover {
+    border-color: #AFA9EC;
+    background: #EEEDFE;
+    color: #3C3489;
+  }
+
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    padding: 40px 24px;
+    background: #f7f7f5;
+  }
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-size: 32px;
+    font-weight: 700;
+    color: #5349B7;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .how-it-works {
+    padding: 60px 24px;
+    background: #fff;
+    border-top: 1px solid #e5e5e3;
+    border-bottom: 1px solid #e5e5e3;
+  }
+  .how-it-works h2 {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 40px;
+  }
+  .steps {
+    display: flex;
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .step {
+    flex: 1;
+    text-align: center;
+    padding: 24px;
+    background: #f7f7f5;
+    border-radius: 12px;
+  }
+  .step-num {
+    width: 36px;
+    height: 36px;
+    background: #5349B7;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 auto 12px;
+  }
+  .step h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .step p {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  .cta {
+    padding: 60px 24px;
+    text-align: center;
+  }
+  .cta h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .cta p {
+    font-size: 15px;
+    color: #666;
+    margin-bottom: 24px;
+  }
+  .cta-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+  <h1>Talento senior de <span>Latinoamérica</span><br>disponible ahora</h1>
+  <p>Profesionales con 10+ años de experiencia verificada en todas las industrias</p>
+
+  <form class="search-box" action="{% url 'directorio' %}" method="get">
+    <input type="text" name="q" placeholder="Cargo, industria o habilidad...">
+    <button type="submit">Buscar</button>
+  </form>
+
+  <div class="chips">
+    {% for sector in sectores %}
+      <a href="{% url 'directorio' %}?sector={{ sector.slug }}" class="chip">
+        {{ sector.nombre }}
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ESTADÍSTICAS -->
+<section class="stats">
+  <div class="stat-item">
+    <div class="stat-num">{{ total }}</div>
+    <div class="stat-label">Profesionales verificados</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">{{ total_pais }}</div>
+    <div class="stat-label">En {{ pais_nombre }}</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">7</div>
+    <div class="stat-label">Países disponibles</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">10+</div>
+    <div class="stat-label">Años mínimos de experiencia</div>
+  </div>
+</section>
+
+<!-- CÓMO FUNCIONA -->
+<section class="how-it-works">
+  <h2>¿Cómo funciona?</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Profesional se registra</h3>
+      <p>Sube su CV, la IA extrae y organiza su información automáticamente.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Equipo verifica el perfil</h3>
+      <p>Revisamos que la experiencia sea real antes de publicar el perfil.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Empresa busca talento</h3>
+      <p>Filtra por sector, país, idioma y años de experiencia.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>Empresa descarga el CV</h3>
+      <p>Paga una vez y recibe el CV profesional con los datos de contacto.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>¿Eres un profesional senior?</h2>
+  <p>Publica tu perfil gratis y conecta con empresas que valoran tu experiencia</p>
+  <div class="cta-buttons">
+    <a href="{% url 'registro_candidato' %}" class="btn btn-primary">Publicar mi perfil gratis</a>
+    <a href="{% url 'registro_empresa' %}" class="btn btn-outline">Buscar talento</a>
+  </div>
+</section>
+
+{% endblock %}

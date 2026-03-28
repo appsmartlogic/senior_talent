@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+
+    /* CABECERA */
+    .header {
+      background: #5349B7;
+      color: #fff;
+      padding: 36px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .header-nombre {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .header-cargo {
+      font-size: 15px;
+      opacity: .85;
+      margin-bottom: 12px;
+    }
+    .header-meta {
+      font-size: 12px;
+      opacity: .75;
+      line-height: 1.8;
+    }
+    .header-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .header-badge .num {
+      font-size: 28px;
+      font-weight: 700;
+      display: block;
+    }
+
+    /* MARCA DE AGUA */
+    .watermark {
+      text-align: center;
+      padding: 8px;
+      background: #EEEDFE;
+      font-size: 11px;
+      color: #5349B7;
+      font-weight: 500;
+    }
+
+    /* CUERPO */
+    .body {
+      display: flex;
+      min-height: 800px;
+    }
+
+    /* COLUMNA IZQUIERDA */
+    .sidebar {
+      width: 200px;
+      background: #f7f7f5;
+      padding: 28px 20px;
+      flex-shrink: 0;
+    }
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+    .sidebar-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #5349B7;
+      margin-bottom: 10px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #ddd;
+    }
+    .sidebar-item {
+      font-size: 12px;
+      color: #444;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .sidebar-item strong {
+      display: block;
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    .tag-pill {
+      display: inline-block;
+      background: #EEEDFE;
+      color: #3C3489;
+      border-radius: 10px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      margin: 2px 2px 2px 0;
+    }
+    .tag-habilidad {
+      display: inline-block;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      margin: 2px 2px 2px 0;
+      color: #444;
+    }
+
+    /* COLUMNA DERECHA */
+    .main {
+      flex: 1;
+      padding: 28px 32px;
+    }
+    .seccion {
+      margin-bottom: 28px;
+    }
+    .seccion-titulo {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #5349B7;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #EEEDFE;
+    }
+    .resumen-texto {
+      font-size: 13px;
+      color: #444;
+      line-height: 1.7;
+    }
+
+    /* EXPERIENCIA */
+    .exp-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0ee;
+    }
+    .exp-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    .exp-años {
+      font-size: 11px;
+      color: #888;
+      min-width: 70px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .exp-cargo {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 2px;
+    }
+    .exp-empresa {
+      font-size: 12px;
+      color: #5349B7;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .exp-desc {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    /* EDUCACIÓN */
+    .edu-item {
+      margin-bottom: 12px;
+    }
+    .edu-titulo {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .edu-inst {
+      font-size: 12px;
+      color: #666;
+    }
+
+    /* CONTACTO */
+    .contacto-box {
+      background: #EEEDFE;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: #3C3489;
+    }
+    .contacto-box strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    /* PIE */
+    .footer {
+      background: #f7f7f5;
+      border-top: 1px solid #e5e5e3;
+      padding: 12px 40px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CABECERA -->
+  <div class="header">
+    <div>
+      <div class="header-nombre">{{ candidato.nombre }}</div>
+      <div class="header-cargo">{{ candidato.cargo_actual }}</div>
+      <div class="header-meta">
+        📍 {{ candidato.ciudad }}, {{ candidato.pais.nombre }}<br>
+        ✉ {{ candidato.usuario.email }}<br>
+        {{ candidato.get_disponibilidad_display }} · {{ candidato.get_modalidad_display }}
+      </div>
+    </div>
+    <div class="header-badge">
+      <span class="num">{{ candidato.años_experiencia }}</span>
+      años de<br>experiencia
+    </div>
+  </div>
+
+  <!-- MARCA SENIORTALENT -->
+  <div class="watermark">
+    Perfil verificado por SeniorTalent · talent.smartlogicapp.com
+  </div>
+
+  <div class="body">
+
+    <!-- SIDEBAR IZQUIERDO -->
+    <div class="sidebar">
+
+      {% if candidato.sectores.all %}
+      <div class="sidebar-section">
+        <div class="sidebar-title">Sectores</div>
+        {% for sector in candidato.sectores.all %}
+          <span class="tag-pill">{{ sector.nombre }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if candidato.habilidades %}
+      <div class="sidebar-section">
+        <div class="sidebar-title">Habilidades</div>
+        {% for habilidad in candidato.habilidades %}
+          <span class="tag-habilidad">{{ habilidad }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if candidato.idiomas.all %}
+      <div class="sidebar-section">
+        <div class="sidebar-title">Idiomas</div>
+        {% for idioma in candidato.idiomas.all %}
+          <div class="sidebar-item">
+            <strong>{{ idioma.idioma }}</strong>
+            {{ idioma.get_nivel_display }}
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Disponibilidad</div>
+        <div class="sidebar-item">{{ candidato.get_disponibilidad_display }}</div>
+        <div class="sidebar-item">{{ candidato.get_modalidad_display }}</div>
+      </div>
+
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main">
+
+      {% if candidato.resumen %}
+      <div class="seccion">
+        <div class="seccion-titulo">Resumen profesional</div>
+        <p class="resumen-texto">{{ candidato.resumen }}</p>
+      </div>
+      {% endif %}
+
+      {% if candidato.experiencias.all %}
+      <div class="seccion">
+        <div class="seccion-titulo">Experiencia laboral</div>
+        {% for exp in candidato.experiencias.all %}
+          <div class="exp-item">
+            <div class="exp-años">
+              {{ exp.año_inicio }} –
+              {% if exp.año_fin %}{{ exp.año_fin }}{% else %}Hoy{% endif %}
+            </div>
+            <div>
+              <div class="exp-cargo">{{ exp.cargo }}</div>
+              <div class="exp-empresa">{{ exp.empresa }}</div>
+              {% if exp.descripcion %}
+                <div class="exp-desc">{{ exp.descripcion }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if candidato.educaciones.all %}
+      <div class="seccion">
+        <div class="seccion-titulo">Educación</div>
+        {% for edu in candidato.educaciones.all %}
+          <div class="edu-item">
+            <div class="edu-titulo">{{ edu.titulo }}</div>
+            <div class="edu-inst">
+              {{ edu.institucion }}
+              {% if edu.año_fin %} · {{ edu.año_fin }}{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- CONTACTO -->
+      <div class="seccion">
+        <div class="seccion-titulo">Datos de contacto</div>
+        <div class="contacto-box">
+          <strong>{{ candidato.nombre }}</strong>
+          ✉ {{ candidato.usuario.email }}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PIE DE PÁGINA -->
+  <div class="footer">
+    <span>SeniorTalent · talent.smartlogicapp.com</span>
+    <span>Perfil verificado · Generado el {% now "d/m/Y" %}</span>
+  </div>
+
+</body>
+</html>

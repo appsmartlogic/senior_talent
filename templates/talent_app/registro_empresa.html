@@ -1,0 +1,168 @@
+{% extends 'talent_app/base.html' %}
+
+{% block title %}Registro empresa · SeniorTalent{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrap {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+  .auth-card {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .auth-logo {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .auth-logo span { color: #5349B7; }
+  .auth-subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 32px;
+  }
+  .form-row {
+    display: flex;
+    gap: 12px;
+  }
+  .form-row .form-group { flex: 1; }
+  .btn-block {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+  }
+  .auth-footer {
+    text-align: center;
+    font-size: 13px;
+    color: #888;
+    margin-top: 20px;
+  }
+  .auth-footer a { color: #5349B7; text-decoration: none; }
+  .aviso-privacidad {
+    background: #f7f7f5;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .aviso-privacidad strong { color: #444; }
+  .nit-label {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 4px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">Senior<span>Talent</span></div>
+    <div class="auth-subtitle">Accede al mejor talento senior de Latinoamérica</div>
+
+    <div class="aviso-privacidad">
+      <strong>Importante:</strong> Solo se aceptan correos corporativos.
+      No se permiten Gmail, Hotmail, Yahoo ni similares.
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Nombre de la empresa</label>
+        <input type="text" name="nombre" class="form-control"
+               placeholder="Acme S.A.S." required>
+      </div>
+
+      <div class="form-group">
+        <label>Correo corporativo</label>
+        <input type="email" name="email" class="form-control"
+               placeholder="rrhh@tuempresa.com" required>
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" name="password" class="form-control"
+               placeholder="Mínimo 8 caracteres" required minlength="8">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>País</label>
+          <select name="pais" class="form-control" required id="select-pais">
+            <option value="">Selecciona...</option>
+            {% for p in paises %}
+              <option value="{{ p.pk }}"
+                      data-label="{{ p.num_tributario_label }}">
+                {{ p.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="label-nit">NIT / Número tributario</label>
+          <input type="text" name="num_tributario" class="form-control"
+                 placeholder="900123456-1" required id="input-nit">
+          <div class="nit-label" id="nit-hint">
+            Selecciona un país para ver el formato
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">
+        Crear cuenta empresa
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      ¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a>
+    </div>
+    <div class="auth-footer" style="margin-top:8px;">
+      ¿Eres profesional? <a href="{% url 'registro_candidato' %}">Regístrate gratis</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Cambia el label del número tributario según el país
+  const selectPais = document.getElementById('select-pais');
+  const labelNit   = document.getElementById('label-nit');
+  const nitHint    = document.getElementById('nit-hint');
+  const hints = {
+    'NIT':  'Colombia — NIT (ej: 900123456-1)',
+    'RFC':  'México — RFC (ej: ABC123456789)',
+    'CUIT': 'Argentina — CUIT (ej: 30-12345678-9)',
+    'RUT':  'Chile — RUT (ej: 76.123.456-7)',
+    'RUC':  'Perú — RUC (ej: 20123456789)',
+    'CIF':  'España — CIF (ej: B12345678)',
+    'EIN':  'EE.UU. — EIN (ej: 12-3456789)',
+  };
+
+  selectPais.addEventListener('change', function() {
+    const opt   = this.options[this.selectedIndex];
+    const label = opt.getAttribute('data-label') || 'NIT';
+    labelNit.textContent = label + ' / Número tributario';
+    nitHint.textContent  = hints[label] || '';
+  });
+</script>
+{% endblock %}

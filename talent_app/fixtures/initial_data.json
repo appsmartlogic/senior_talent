@@ -1,0 +1,9 @@
+[
+  {"model": "talent_app.pais", "pk": 1, "fields": {"codigo": "CO", "nombre": "Colombia", "moneda": "COP", "num_tributario_label": "NIT", "activo": true}},
+  {"model": "talent_app.pais", "pk": 2, "fields": {"codigo": "MX", "nombre": "México", "moneda": "MXN", "num_tributario_label": "RFC", "activo": true}},
+  {"model": "talent_app.pais", "pk": 3, "fields": {"codigo": "AR", "nombre": "Argentina", "moneda": "ARS", "num_tributario_label": "CUIT", "activo": true}},
+  {"model": "talent_app.pais", "pk": 4, "fields": {"codigo": "CL", "nombre": "Chile", "moneda": "CLP", "num_tributario_label": "RUT", "activo": true}},
+  {"model": "talent_app.pais", "pk": 5, "fields": {"codigo": "PE", "nombre": "Perú", "moneda": "PEN", "num_tributario_label": "RUC", "activo": true}},
+  {"model": "talent_app.pais", "pk": 6, "fields": {"codigo": "ES", "nombre": "España", "moneda": "EUR", "num_tributario_label": "CIF", "activo": true}},
+  {"model": "talent_app.pais", "pk": 7, "fields": {"codigo": "US", "nombre": "Estados Unidos", "moneda": "USD", "num_tributario_label": "EIN", "activo": true}}
+]

@@ -1,0 +1,106 @@
+{% extends 'talent_app/base.html' %}
+
+{% block title %}Pago exitoso · SeniorTalent{% endblock %}
+
+{% block extra_css %}
+<style>
+  .exito-wrap {
+    max-width: 560px;
+    margin: 60px auto;
+    padding: 0 24px;
+    text-align: center;
+  }
+  .exito-icono {
+    width: 80px;
+    height: 80px;
+    background: #E1F5EE;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 24px;
+  }
+  .exito-card {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 40px;
+  }
+  .exito-card h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #1a1a1a;
+  }
+  .exito-card p {
+    font-size: 15px;
+    color: #666;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .candidato-info-box {
+    background: #f7f7f5;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .candidato-info-box .nombre {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .candidato-info-box .cargo {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  .candidato-info-box .email {
+    font-size: 14px;
+    color: #0F6E56;
+    background: #E1F5EE;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+  }
+  .acciones {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exito-wrap">
+  <div class="exito-card">
+    <div class="exito-icono">✓</div>
+
+    <h1>¡Pago exitoso!</h1>
+
+    {% if descarga %}
+      <p>Has desbloqueado el perfil de <strong>{{ descarga.candidato.nombre }}</strong>.
+      Aquí están sus datos de contacto:</p>
+
+      <div class="candidato-info-box">
+        <div class="nombre">{{ descarga.candidato.nombre }}</div>
+        <div class="cargo">{{ descarga.candidato.cargo_actual }}</div>
+        <div class="email">✉ {{ descarga.candidato.usuario.email }}</div>
+      </div>
+    {% else %}
+      <p>Tu pago fue procesado correctamente.
+      Encuentra el CV en tu panel de candidatos.</p>
+    {% endif %}
+
+    <div class="acciones">
+      <a href="{% url 'empresa_candidatos' %}" class="btn btn-primary">
+        Ver mis candidatos
+      </a>
+      <a href="{% url 'directorio' %}" class="btn btn-outline">
+        Seguir buscando
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

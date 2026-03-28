@@ -1,0 +1,342 @@
+{% extends 'talent_app/base.html' %}
+
+{% block title %}Directorio · SeniorTalent{% endblock %}
+
+{% block extra_css %}
+<style>
+  .directorio-header {
+    background: #fff;
+    border-bottom: 1px solid #e5e5e3;
+    padding: 24px;
+  }
+  .directorio-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .search-row {
+    display: flex;
+    gap: 8px;
+    max-width: 600px;
+  }
+  .search-row input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .search-row input:focus {
+    outline: none;
+    border-color: #5349B7;
+  }
+  .search-row button {
+    padding: 10px 20px;
+    background: #5349B7;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .directorio-body {
+    display: flex;
+    gap: 24px;
+    padding: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+    align-items: flex-start;
+  }
+
+  /* SIDEBAR FILTROS */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 20px;
+    position: sticky;
+    top: 80px;
+  }
+  .sidebar h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin: 0 0 10px;
+  }
+  .filter-group { margin-bottom: 24px; }
+  .filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #444;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .filter-item input { accent-color: #5349B7; cursor: pointer; }
+  .filter-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #444;
+    background: #fff;
+  }
+  .filter-select:focus { outline: none; border-color: #5349B7; }
+  .btn-filtrar {
+    width: 100%;
+    padding: 10px;
+    background: #5349B7;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .btn-limpiar {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    color: #888;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 8px;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+  }
+
+  /* RESULTADOS */
+  .results { flex: 1; }
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .results-count {
+    font-size: 14px;
+    color: #666;
+  }
+
+  /* TARJETA CANDIDATO */
+  .candidato-card {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    transition: border-color .15s;
+    text-decoration: none;
+    color: inherit;
+  }
+  .candidato-card:hover { border-color: #AFA9EC; }
+  .candidato-info { flex: 1; }
+  .candidato-nombre {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 2px;
+  }
+  .candidato-cargo {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  .candidato-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .candidato-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .candidato-habilidades {
+    font-size: 12px;
+    color: #888;
+  }
+  .btn-ver {
+    padding: 7px 16px;
+    border: 1px solid #AFA9EC;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #5349B7;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-ver:hover { background: #EEEDFE; }
+
+  .sin-resultados {
+    text-align: center;
+    padding: 60px 24px;
+    color: #888;
+  }
+  .sin-resultados h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: #444;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="directorio-header">
+  <div class="container">
+    <h1>Directorio de talento senior</h1>
+    <form class="search-row" method="get" action="{% url 'directorio' %}">
+      <input type="text" name="q" value="{{ filtros.q }}" placeholder="Cargo, industria o habilidad...">
+      {% if filtros.pais %}<input type="hidden" name="pais" value="{{ filtros.pais }}">{% endif %}
+      {% if filtros.sector %}<input type="hidden" name="sector" value="{{ filtros.sector }}">{% endif %}
+      {% if filtros.exp_min %}<input type="hidden" name="exp_min" value="{{ filtros.exp_min }}">{% endif %}
+      {% if filtros.idioma %}<input type="hidden" name="idioma" value="{{ filtros.idioma }}">{% endif %}
+      {% if filtros.nivel_idioma %}<input type="hidden" name="nivel_idioma" value="{{ filtros.nivel_idioma }}">{% endif %}
+      <button type="submit">Buscar</button>
+    </form>
+  </div>
+</div>
+
+<div class="directorio-body">
+
+  <!-- SIDEBAR -->
+  <form class="sidebar" method="get" action="{% url 'directorio' %}">
+    {% if filtros.q %}<input type="hidden" name="q" value="{{ filtros.q }}">{% endif %}
+
+    <div class="filter-group">
+      <h3>País</h3>
+      <select name="pais" class="filter-select">
+        <option value="todos">Todos los países</option>
+        {% for p in paises %}
+          <option value="{{ p.codigo }}" {% if filtros.pais == p.codigo %}selected{% endif %}>
+            {{ p.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <h3>Sector</h3>
+      <select name="sector" class="filter-select">
+        <option value="">Todos los sectores</option>
+        {% for s in sectores %}
+          <option value="{{ s.slug }}" {% if filtros.sector == s.slug %}selected{% endif %}>
+            {{ s.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <h3>Experiencia mínima</h3>
+      <select name="exp_min" class="filter-select">
+        <option value="">Cualquiera</option>
+        <option value="10" {% if filtros.exp_min == '10' %}selected{% endif %}>10+ años</option>
+        <option value="15" {% if filtros.exp_min == '15' %}selected{% endif %}>15+ años</option>
+        <option value="20" {% if filtros.exp_min == '20' %}selected{% endif %}>20+ años</option>
+        <option value="25" {% if filtros.exp_min == '25' %}selected{% endif %}>25+ años</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <h3>Idioma</h3>
+      <select name="idioma" class="filter-select">
+        <option value="">Cualquiera</option>
+        <option value="Inglés" {% if filtros.idioma == 'Inglés' %}selected{% endif %}>Inglés</option>
+        <option value="Español" {% if filtros.idioma == 'Español' %}selected{% endif %}>Español</option>
+        <option value="Portugués" {% if filtros.idioma == 'Portugués' %}selected{% endif %}>Portugués</option>
+        <option value="Francés" {% if filtros.idioma == 'Francés' %}selected{% endif %}>Francés</option>
+        <option value="Alemán" {% if filtros.idioma == 'Alemán' %}selected{% endif %}>Alemán</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <h3>Nivel de idioma</h3>
+      <select name="nivel_idioma" class="filter-select">
+        <option value="">Cualquier nivel</option>
+        <option value="nativo" {% if filtros.nivel_idioma == 'nativo' %}selected{% endif %}>Nativo</option>
+        <option value="avanzado" {% if filtros.nivel_idioma == 'avanzado' %}selected{% endif %}>Avanzado (C1-C2)</option>
+        <option value="intermedio" {% if filtros.nivel_idioma == 'intermedio' %}selected{% endif %}>Intermedio (B1-B2)</option>
+        <option value="basico" {% if filtros.nivel_idioma == 'basico' %}selected{% endif %}>Básico (A1-A2)</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <h3>Disponibilidad</h3>
+      <select name="disponibilidad" class="filter-select">
+        <option value="">Cualquiera</option>
+        <option value="inmediata" {% if filtros.disponibilidad == 'inmediata' %}selected{% endif %}>Disponible ahora</option>
+        <option value="1_mes" {% if filtros.disponibilidad == '1_mes' %}selected{% endif %}>En 1 mes</option>
+        <option value="freelance" {% if filtros.disponibilidad == 'freelance' %}selected{% endif %}>Solo freelance</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn-filtrar">Aplicar filtros</button>
+    <a href="{% url 'directorio' %}" class="btn-limpiar">Limpiar filtros</a>
+  </form>
+
+  <!-- RESULTADOS -->
+  <div class="results">
+    <div class="results-header">
+      <span class="results-count">{{ candidatos|length }} profesional{{ candidatos|length|pluralize:"es" }} encontrado{{ candidatos|length|pluralize:"s" }}</span>
+    </div>
+
+    {% for candidato in candidatos %}
+    <a href="{% url 'perfil_candidato' candidato.pk %}" class="candidato-card">
+      <div class="avatar" style="background:#EEEDFE;color:#3C3489;">
+        {{ candidato.iniciales }}
+      </div>
+      <div class="candidato-info">
+        <div class="candidato-nombre">{{ candidato.nombre }}</div>
+        <div class="candidato-cargo">{{ candidato.cargo_actual }}</div>
+        <div class="candidato-tags">
+          <span class="tag tag-exp">{{ candidato.años_experiencia }} años exp.</span>
+          {% for sector in candidato.sectores.all|slice:":2" %}
+            <span class="tag tag-sec">{{ sector.nombre }}</span>
+          {% endfor %}
+          <span class="tag tag-city">📍 {{ candidato.ciudad }}, {{ candidato.pais.nombre }}</span>
+          {% if candidato.disponibilidad == 'inmediata' %}
+            <span class="tag tag-open">Disponible ahora</span>
+          {% endif %}
+          {% for idioma in candidato.idiomas.all|slice:":2" %}
+            <span class="tag tag-city">{{ idioma.idioma }} · {{ idioma.get_nivel_display }}</span>
+          {% endfor %}
+        </div>
+        <div class="candidato-footer">
+          <span class="candidato-habilidades">
+            {{ candidato.habilidades|slice:":4"|join:", " }}
+          </span>
+          <span class="btn-ver">Ver perfil →</span>
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div class="sin-resultados">
+      <h3>No se encontraron profesionales</h3>
+      <p>Intenta con otros filtros o amplía tu búsqueda</p>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

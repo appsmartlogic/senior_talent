@@ -1,0 +1,270 @@
+{% extends 'talent_app/base.html' %}
+
+{% block title %}Mis candidatos · SeniorTalent{% endblock %}
+
+{% block extra_css %}
+<style>
+  .empresa-wrap {
+    max-width: 900px;
+    margin: 32px auto;
+    padding: 0 24px;
+  }
+  .empresa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .empresa-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .empresa-header p {
+    font-size: 14px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  /* ESTADO EMPRESA */
+  .estado-banner {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .estado-pendiente {
+    background: #FAEEDA;
+    color: #633806;
+    border: 1px solid #FAC775;
+  }
+  .estado-activa {
+    background: #E1F5EE;
+    color: #0F6E56;
+    border: 1px solid #9FE1CB;
+  }
+
+  /* STATS */
+  .stats-grid {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 700;
+    color: #5349B7;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  /* CANDIDATOS DESBLOQUEADOS */
+  .seccion {
+    background: #fff;
+    border: 1px solid #e5e5e3;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .seccion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e5e3;
+  }
+  .seccion-header h2 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .candidato-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0ee;
+  }
+  .candidato-row:last-child { border-bottom: none; }
+  .candidato-info { flex: 1; }
+  .candidato-nombre {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 2px;
+    text-decoration: none;
+  }
+  .candidato-nombre:hover { color: #5349B7; }
+  .candidato-cargo {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 6px;
+  }
+  .candidato-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .candidato-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    align-items: center;
+  }
+  .btn-cv {
+    padding: 8px 16px;
+    border: 1px solid #AFA9EC;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #5349B7;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-cv:hover { background: #EEEDFE; }
+  .btn-ver {
+    padding: 8px 16px;
+    border: 1px solid #e5e5e3;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #555;
+    background: transparent;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-ver:hover { background: #f7f7f5; }
+  .contacto-email {
+    font-size: 13px;
+    color: #0F6E56;
+    background: #E1F5EE;
+    padding: 4px 10px;
+    border-radius: 8px;
+  }
+  .fecha-descarga {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 4px;
+  }
+
+  .sin-candidatos {
+    text-align: center;
+    padding: 48px 24px;
+    color: #888;
+  }
+  .sin-candidatos h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #444;
+  }
+  .sin-candidatos p {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="empresa-wrap">
+
+  <div class="empresa-header">
+    <div>
+      <h1>{{ empresa.nombre }}</h1>
+      <p>Panel de empresa · {{ empresa.pais.nombre }}</p>
+    </div>
+    <a href="{% url 'directorio' %}" class="btn btn-primary">Buscar talento →</a>
+  </div>
+
+  <!-- ESTADO EMPRESA -->
+  {% if empresa.estado == 'pendiente' %}
+    <div class="estado-banner estado-pendiente">
+      <span style="font-size:20px;">⏳</span>
+      <div>
+        <strong>Cuenta en verificación</strong> — Estamos validando los datos de tu empresa.
+        Podrás descargar CVs una vez que tu cuenta sea aprobada.
+      </div>
+    </div>
+  {% elif empresa.estado == 'activa' %}
+    <div class="estado-banner estado-activa">
+      <span style="font-size:20px;">✓</span>
+      <strong>Cuenta verificada</strong> — Puedes descargar CVs de cualquier profesional del directorio.
+    </div>
+  {% endif %}
+
+  <!-- ESTADÍSTICAS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num">{{ descargas|length }}</div>
+      <div class="stat-label">CVs descargados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${{ descargas|length|add:0|stringformat:"d" }}</div>
+      <div class="stat-label">Total invertido (USD)</div>
+    </div>
+  </div>
+
+  <!-- CANDIDATOS DESBLOQUEADOS -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <h2>Candidatos desbloqueados</h2>
+    </div>
+
+    {% if descargas %}
+      {% for descarga in descargas %}
+        <div class="candidato-row">
+          <div class="avatar" style="background:#EEEDFE;color:#3C3489;">
+            {{ descarga.candidato.iniciales }}
+          </div>
+          <div class="candidato-info">
+            <a href="{% url 'perfil_candidato' descarga.candidato.pk %}"
+               class="candidato-nombre">
+              {{ descarga.candidato.nombre }}
+            </a>
+            <div class="candidato-cargo">{{ descarga.candidato.cargo_actual }}</div>
+            <div class="candidato-tags">
+              <span class="tag tag-exp">{{ descarga.candidato.años_experiencia }} años exp.</span>
+              <span class="tag tag-city">📍 {{ descarga.candidato.ciudad }}, {{ descarga.candidato.pais.nombre }}</span>
+              <span class="contacto-email">✉ {{ descarga.candidato.usuario.email }}</span>
+            </div>
+            {% if descarga.pagado_en %}
+              <div class="fecha-descarga">
+                Descargado el {{ descarga.pagado_en|date:"d/m/Y" }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="candidato-actions">
+              <a href="{% url 'descargar_pdf_cv' descarga.candidato.pk %}"
+                class="btn-cv">⬇ Descargar PDF</a>
+              <a href="{% url 'perfil_candidato' descarga.candidato.pk %}"
+                class="btn-ver">Ver perfil</a>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="sin-candidatos">
+        <h3>Aún no has descargado ningún CV</h3>
+        <p>Busca talento senior en el directorio y descarga los perfiles que te interesen.</p>
+        <a href="{% url 'directorio' %}" class="btn btn-primary">Ir al directorio →</a>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
