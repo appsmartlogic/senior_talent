@@ -135,6 +135,35 @@
     transition: background .15s;
   }
   .btn-guardar:hover { background: #3C3489; }
+
+  .cv-uploader {
+  border: 2px dashed #ddd;
+  border-radius: 10px;
+  padding: 32px;
+  text-align: center;
+  transition: border-color .15s;
+  cursor: pointer;
+}
+.cv-uploader:hover { border-color: #AFA9EC; }
+.cv-uploader-icon { font-size: 32px; margin-bottom: 12px; }
+.cv-uploader h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.cv-uploader p { font-size: 13px; color: #888; margin-bottom: 4px; }
+.cv-loading {
+  display: none;
+  font-size: 14px;
+  color: #5349B7;
+  margin-top: 12px;
+}
+.cv-resultado {
+  display: none;
+  margin-top: 16px;
+  padding: 12px;
+  background: #E1F5EE;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #0F6E56;
+}
+  
 </style>
 {% endblock %}
 
@@ -148,6 +177,24 @@
 
   <form method="post" enctype="multipart/form-data" id="form-perfil">
     {% csrf_token %}
+
+    <!-- UPLOADER CV CON IA -->
+    <div class="seccion" id="seccion-cv">
+      <h2>📄 Primero sube tu CV — la IA llena los campos</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">
+        Sube tu CV en PDF y completamos tu perfil automáticamente.
+        El archivo <strong>no se almacena</strong> — solo se usa para extraer tu información.
+      </p>
+      <div class="cv-uploader" id="cv-drop" onclick="document.getElementById('cv-input').click()">
+        <div class="cv-uploader-icon">📄</div>
+        <h3>Arrastra tu CV aquí o haz clic para seleccionar</h3>
+        <p>Solo PDF · Máximo 5 MB</p>
+        <input type="file" id="cv-input" accept=".pdf" style="display:none">
+        <div class="cv-loading" id="cv-loading">⏳ Procesando con IA, espera un momento...</div>
+        <div class="cv-resultado" id="cv-resultado"></div>
+      </div>
+    </div>
+
 
     <!-- INFORMACIÓN BÁSICA -->
     <div class="seccion">
@@ -264,32 +311,84 @@
 
 {% block extra_js %}
 <script>
+const input     = document.getElementById('cv-input');
+const loading   = document.getElementById('cv-loading');
+const resultado = document.getElementById('cv-resultado');
+const drop      = document.getElementById('cv-drop');
+
+input.addEventListener('change', function() {
+  if (this.files.length > 0) subirCV(this.files[0]);
+});
+
+drop.addEventListener('dragover', e => {
+  e.preventDefault();
+  drop.style.borderColor = '#5349B7';
+});
+drop.addEventListener('dragleave', () => {
+  drop.style.borderColor = '#ddd';
+});
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.style.borderColor = '#ddd';
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.pdf')) subirCV(file);
+});
+
+function subirCV(file) {
+  loading.style.display   = 'block';
+  resultado.style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('cv', file);
+  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  fetch('{% url "subir_cv_ia" %}', {
+    method: 'POST',
+    body: formData,
+  })
+  .then(r => r.json())
+  .then(data => {
+    loading.style.display = 'none';
+    if (data.ok) {
+      const d = data.datos;
+      if (d.cargo_actual)     document.querySelector('[name=cargo_actual]').value     = d.cargo_actual;
+      if (d.años_experiencia) document.querySelector('[name=años_experiencia]').value = d.años_experiencia;
+      if (d.ciudad)           document.querySelector('[name=ciudad]').value           = d.ciudad;
+      if (d.resumen)          document.querySelector('[name=resumen]').value          = d.resumen;
+      if (d.habilidades && d.habilidades.length) {
+        document.querySelector('[name=habilidades]').value = d.habilidades.join(', ');
+      }
+      resultado.style.display    = 'block';
+      resultado.style.background = '#E1F5EE';
+      resultado.style.color      = '#0F6E56';
+      resultado.innerHTML        = '✓ CV procesado — revisa los campos y guarda tu perfil.';
+      document.querySelector('[name=cargo_actual]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      resultado.style.display    = 'block';
+      resultado.style.background = '#FCEBEB';
+      resultado.style.color      = '#A32D2D';
+      resultado.innerHTML        = '✗ Error: ' + data.error;
+    }
+  })
+  .catch(() => {
+    loading.style.display      = 'none';
+    resultado.style.display    = 'block';
+    resultado.style.background = '#FCEBEB';
+    resultado.style.color      = '#A32D2D';
+    resultado.innerHTML        = '✗ Error de conexión. Intenta de nuevo.';
+  });
+}
+
 // Preview foto
 document.getElementById('foto-input').addEventListener('change', function() {
   const file = this.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const preview = document.getElementById('foto-preview');
-    preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    document.getElementById('foto-preview').innerHTML =
+      `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
   };
   reader.readAsDataURL(file);
-});
-
-// Pre-llenar desde IA si hay datos en sessionStorage
-window.addEventListener('load', function() {
-  const raw = sessionStorage.getItem('cv_datos');
-  if (!raw) return;
-  const datos = JSON.parse(raw);
-  sessionStorage.removeItem('cv_datos');
-
-  if (datos.cargo_actual) document.querySelector('[name=cargo_actual]').value = datos.cargo_actual;
-  if (datos.años_experiencia) document.querySelector('[name=años_experiencia]').value = datos.años_experiencia;
-  if (datos.ciudad) document.querySelector('[name=ciudad]').value = datos.ciudad;
-  if (datos.resumen) document.querySelector('[name=resumen]').value = datos.resumen;
-  if (datos.habilidades && datos.habilidades.length) {
-    document.querySelector('[name=habilidades]').value = datos.habilidades.join(', ');
-  }
 });
 </script>
 {% endblock %}
