@@ -10,13 +10,16 @@ from django.conf import settings
 
 
 def extraer_texto_pdf(contenido_bytes: bytes) -> str:
-    """Extrae texto plano de un PDF en memoria usando pypdf."""
+    """Extrae texto solo de las primeras 2 páginas del PDF."""
     try:
         import pypdf
         lector = pypdf.PdfReader(io.BytesIO(contenido_bytes))
+        paginas = lector.pages[:2]
         texto = '\n'.join(
-            pagina.extract_text() or '' for pagina in lector.pages
+            pagina.extract_text() or '' for pagina in paginas
         )
+        texto = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', ' ', texto)
+        texto = re.sub(r' +', ' ', texto)
         return texto.strip()
     except Exception as e:
         raise ValueError(f'No se pudo leer el PDF: {e}')
@@ -32,14 +35,18 @@ def extraer_datos_cv(contenido_bytes: bytes) -> dict:
     if len(texto) < 100:
         raise ValueError('El PDF no contiene suficiente texto legible.')
 
-    prompt = f"""Eres un extractor de datos de hojas de vida profesionales.
-Analiza el siguiente texto de un CV y extrae los datos en formato JSON.
-IMPORTANTE: Responde SOLO con el JSON, sin explicaciones ni markdown.
+    prompt = f"""You are a professional CV/resume data extractor. You work with CVs in Spanish and English.
+Analyze the following CV text and extract the data in JSON format.
+IMPORTANT: Respond ONLY with the JSON, no explanations, no markdown, no extra text.
+All response values must be in the SAME language as the CV text.
 
-Texto del CV:
-{texto[:4000]}
+For "cargo_actual": look for the most recent or prominent job title. Examples: Lider, Director, Gerente, Developer, Lead, Manager, Analista, Jefe, Coordinator, Scrum Master. If not found use the first title mentioned.
+For "años_experiencia": return only a number, not text.
 
-Devuelve exactamente este JSON (completa los campos que encuentres, deja vacío lo que no esté):
+CV text:
+{texto[:2000]}
+
+Return exactly this JSON:
 {{
   "nombre": "",
   "cargo_actual": "",
@@ -68,7 +75,7 @@ Devuelve exactamente este JSON (completa los campos que encuentres, deja vacío 
                 'stream': False,
                 'options': {'temperature': 0.1},
             },
-            timeout=60,
+            timeout=180,
         )
         resp.raise_for_status()
         respuesta_raw = resp.json().get('response', '{}')
@@ -109,7 +116,7 @@ def _limpiar_datos(datos: dict) -> dict:
 
     return {
         'nombre':           str(datos.get('nombre', '')).strip()[:200],
-        'cargo_actual':     str(datos.get('cargo_actual', '')).strip()[:200],
+        'cargo_actual':     str(datos.get('cargo_actual', '') or '').strip()[:200],
         'ciudad':           str(datos.get('ciudad', '')).strip()[:100],
         'pais_codigo':      str(datos.get('pais_codigo', '')).strip().upper()[:2],
         'años_experiencia': min(años, 60),

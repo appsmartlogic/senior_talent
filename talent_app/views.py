@@ -224,7 +224,7 @@ def editar_perfil(request):
         sectores_ids = request.POST.getlist('sectores')
         candidato.sectores.set(sectores_ids)
 
-        if candidato.años_experiencia < 10:
+        if candidato.años_experiencia < 5:
             messages.error(request, 'La plataforma es exclusiva para profesionales con 10+ años de experiencia.')
             return render(request, 'talent_app/editar_perfil.html', {
                 'candidato': candidato,
@@ -233,6 +233,53 @@ def editar_perfil(request):
             })
 
         candidato.save()
+
+        # Guardar experiencias
+        candidato.experiencias.all().delete()
+        empresas = request.POST.getlist('exp_empresa')
+        cargos   = request.POST.getlist('exp_cargo')
+        inicios  = request.POST.getlist('exp_inicio')
+        fines    = request.POST.getlist('exp_fin')
+        descs    = request.POST.getlist('exp_desc')
+        for i, empresa in enumerate(empresas):
+            if empresa.strip():
+                ExperienciaLaboral.objects.create(
+                    candidato=candidato,
+                    empresa=empresa.strip(),
+                    cargo=cargos[i].strip() if i < len(cargos) else '',
+                    año_inicio=int(inicios[i]) if i < len(inicios) and inicios[i] else 0,
+                    año_fin=int(fines[i]) if i < len(fines) and fines[i] else None,
+                    descripcion=descs[i].strip() if i < len(descs) else '',
+                    orden=i,
+                )
+
+        # Guardar educación
+        candidato.educaciones.all().delete()
+        titulos       = request.POST.getlist('edu_titulo')
+        instituciones = request.POST.getlist('edu_institucion')
+        anos_edu      = request.POST.getlist('edu_año')
+        for i, titulo in enumerate(titulos):
+            if titulo.strip():
+                Educacion.objects.create(
+                    candidato=candidato,
+                    titulo=titulo.strip(),
+                    institucion=instituciones[i].strip() if i < len(instituciones) else '',
+                    año_fin=int(anos_edu[i]) if i < len(anos_edu) and anos_edu[i] else None,
+                    orden=i,
+                )
+
+        # Guardar idiomas
+        candidato.idiomas.all().delete()
+        idiomas_nombres = request.POST.getlist('idioma_nombre')
+        idiomas_niveles = request.POST.getlist('idioma_nivel')
+        for i, idioma in enumerate(idiomas_nombres):
+            if idioma.strip():
+                IdiomaCandiato.objects.create(
+                    candidato=candidato,
+                    idioma=idioma.strip(),
+                    nivel=idiomas_niveles[i] if i < len(idiomas_niveles) else 'intermedio',
+                )
+
         messages.success(request, 'Perfil actualizado correctamente.')
         return redirect('dashboard')
 
@@ -247,7 +294,7 @@ def editar_perfil(request):
 @require_POST
 def subir_cv_ia(request):
     """
-    Recibe el PDF, lo procesa con Ollama en memoria.
+    Recibe el PDF, lanza task de Celery y devuelve task_id inmediatamente.
     El archivo NUNCA se guarda en disco.
     """
     archivo = request.FILES.get('cv')
@@ -257,19 +304,37 @@ def subir_cv_ia(request):
     if not archivo.name.lower().endswith('.pdf'):
         return JsonResponse({'error': 'Solo se aceptan archivos PDF'}, status=400)
 
-    if archivo.size > 5 * 1024 * 1024:
-        return JsonResponse({'error': 'El archivo supera el límite de 5 MB'}, status=400)
+    if archivo.size > 10 * 1024 * 1024:
+        return JsonResponse({'error': 'El archivo supera el límite de 10 MB'}, status=400)
 
     try:
-        from .services import extraer_datos_cv
-        contenido_pdf = archivo.read()
+        from .tasks import procesar_cv_task
+        contenido_bytes = archivo.read()
         del archivo
-        datos = extraer_datos_cv(contenido_pdf)
-        return JsonResponse({'ok': True, 'datos': datos})
+        # Convertir a hex para que Celery pueda serializarlo
+        contenido_hex = contenido_bytes.hex()
+        task = procesar_cv_task.delay(contenido_hex)
+        return JsonResponse({'ok': True, 'task_id': task.id})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@login_required
+def estado_tarea(request, task_id):
+    """
+    Polling — el frontend consulta cada 3 segundos el estado de la tarea.
+    """
+    from celery.result import AsyncResult
+    result = AsyncResult(task_id)
+
+    if result.state == 'PENDING':
+        return JsonResponse({'estado': 'pendiente'})
+    elif result.state == 'SUCCESS':
+        return JsonResponse({'estado': 'listo', 'resultado': result.result})
+    elif result.state == 'FAILURE':
+        return JsonResponse({'estado': 'error', 'error': str(result.result)})
+    else:
+        return JsonResponse({'estado': result.state.lower()})
 # ──────────────────────────────────────────
 # DASHBOARD EMPRESA
 # ──────────────────────────────────────────

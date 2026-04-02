@@ -10,6 +10,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-cambiar-en-produccion')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://talent.smartlogicapp.com').split(',')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -18,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'anymail',
+    'django_celery_results',
     'talent_app',
 ]
 
@@ -107,3 +110,15 @@ OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.1:8b')
 
 IPAPI_URL = 'https://ipapi.co/{ip}/json/'
 PAIS_DEFAULT = 'CO'
+
+# Celery
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/2'  # DB 2 para no chocar con SmartLogicApp
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'default'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/Bogota'
+
+# Agregar a INSTALLED_APPS
+# 'django_celery_results',

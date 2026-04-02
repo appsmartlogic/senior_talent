@@ -7,12 +7,12 @@
   .directorio-header {
     background: #fff;
     border-bottom: 1px solid #e5e5e3;
-    padding: 24px;
+    padding: 20px 16px;
   }
   .directorio-header h1 {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
   .search-row {
     display: flex;
@@ -25,13 +25,11 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     font-size: 14px;
+    min-width: 0;
   }
-  .search-row input:focus {
-    outline: none;
-    border-color: #5349B7;
-  }
+  .search-row input:focus { outline: none; border-color: #5349B7; }
   .search-row button {
-    padding: 10px 20px;
+    padding: 10px 16px;
     background: #5349B7;
     color: #fff;
     border: none;
@@ -39,27 +37,28 @@
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
+    white-space: nowrap;
   }
 
   .directorio-body {
     display: flex;
-    gap: 24px;
-    padding: 24px;
+    gap: 20px;
+    padding: 20px 16px;
     max-width: 1100px;
     margin: 0 auto;
     align-items: flex-start;
   }
 
-  /* SIDEBAR FILTROS */
+  /* SIDEBAR */
   .sidebar {
-    width: 220px;
+    width: 210px;
     flex-shrink: 0;
     background: #fff;
     border: 1px solid #e5e5e3;
     border-radius: 12px;
-    padding: 20px;
+    padding: 16px;
     position: sticky;
-    top: 80px;
+    top: 70px;
   }
   .sidebar h3 {
     font-size: 11px;
@@ -67,19 +66,9 @@
     color: #888;
     text-transform: uppercase;
     letter-spacing: .05em;
-    margin: 0 0 10px;
+    margin: 0 0 8px;
   }
-  .filter-group { margin-bottom: 24px; }
-  .filter-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #444;
-    margin-bottom: 8px;
-    cursor: pointer;
-  }
-  .filter-item input { accent-color: #5349B7; cursor: pointer; }
+  .filter-group { margin-bottom: 20px; }
   .filter-select {
     width: 100%;
     padding: 8px 10px;
@@ -117,85 +106,118 @@
     display: block;
   }
 
+  /* FILTROS MÓVIL */
+  .filtros-toggle {
+    display: none;
+    width: 100%;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #444;
+    cursor: pointer;
+    margin-bottom: 12px;
+    text-align: left;
+  }
+
   /* RESULTADOS */
-  .results { flex: 1; }
+  .results { flex: 1; min-width: 0; }
   .results-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 16px;
   }
-  .results-count {
-    font-size: 14px;
-    color: #666;
-  }
+  .results-count { font-size: 14px; color: #666; }
 
-  /* TARJETA CANDIDATO */
+  /* TARJETA */
   .candidato-card {
     background: #fff;
     border: 1px solid #e5e5e3;
     border-radius: 12px;
-    padding: 20px;
+    padding: 16px;
     margin-bottom: 12px;
     display: flex;
-    gap: 16px;
+    gap: 12px;
     align-items: flex-start;
     transition: border-color .15s;
     text-decoration: none;
     color: inherit;
   }
   .candidato-card:hover { border-color: #AFA9EC; }
-  .candidato-info { flex: 1; }
+  .candidato-info { flex: 1; min-width: 0; }
   .candidato-nombre {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: #1a1a1a;
     margin-bottom: 2px;
   }
   .candidato-cargo {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .candidato-tags {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
   .candidato-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
   }
   .candidato-habilidades {
     font-size: 12px;
     color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .btn-ver {
-    padding: 7px 16px;
+    padding: 6px 14px;
     border: 1px solid #AFA9EC;
     border-radius: 8px;
     font-size: 13px;
     color: #5349B7;
     background: transparent;
-    cursor: pointer;
     font-weight: 500;
     text-decoration: none;
-    transition: all .15s;
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .btn-ver:hover { background: #EEEDFE; }
 
   .sin-resultados {
     text-align: center;
-    padding: 60px 24px;
+    padding: 48px 16px;
     color: #888;
   }
-  .sin-resultados h3 {
-    font-size: 18px;
-    margin-bottom: 8px;
-    color: #444;
+  .sin-resultados h3 { font-size: 17px; margin-bottom: 8px; color: #444; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .directorio-body { flex-direction: column; padding: 16px; }
+    .sidebar {
+      width: 100%;
+      position: static;
+      display: none;
+    }
+    .sidebar.open { display: block; }
+    .filtros-toggle { display: block; }
+    .candidato-footer { flex-wrap: wrap; }
+  }
+
+  @media (max-width: 480px) {
+    .candidato-card { padding: 12px; }
+    .candidato-nombre { font-size: 14px; }
+    .search-row button { padding: 10px 12px; font-size: 13px; }
   }
 </style>
 {% endblock %}
@@ -219,8 +241,11 @@
 
 <div class="directorio-body">
 
+  <!-- Botón mostrar filtros en móvil -->
+  <button class="filtros-toggle" onclick="toggleFiltros()">☰ Filtros</button>
+
   <!-- SIDEBAR -->
-  <form class="sidebar" method="get" action="{% url 'directorio' %}">
+  <form class="sidebar" id="sidebar-filtros" method="get" action="{% url 'directorio' %}">
     {% if filtros.q %}<input type="hidden" name="q" value="{{ filtros.q }}">{% endif %}
 
     <div class="filter-group">
@@ -228,9 +253,7 @@
       <select name="pais" class="filter-select">
         <option value="todos">Todos los países</option>
         {% for p in paises %}
-          <option value="{{ p.codigo }}" {% if filtros.pais == p.codigo %}selected{% endif %}>
-            {{ p.nombre }}
-          </option>
+          <option value="{{ p.codigo }}" {% if filtros.pais == p.codigo %}selected{% endif %}>{{ p.nombre }}</option>
         {% endfor %}
       </select>
     </div>
@@ -240,9 +263,7 @@
       <select name="sector" class="filter-select">
         <option value="">Todos los sectores</option>
         {% for s in sectores %}
-          <option value="{{ s.slug }}" {% if filtros.sector == s.slug %}selected{% endif %}>
-            {{ s.nombre }}
-          </option>
+          <option value="{{ s.slug }}" {% if filtros.sector == s.slug %}selected{% endif %}>{{ s.nombre }}</option>
         {% endfor %}
       </select>
     </div>
@@ -318,14 +339,12 @@
           {% if candidato.disponibilidad == 'inmediata' %}
             <span class="tag tag-open">Disponible ahora</span>
           {% endif %}
-          {% for idioma in candidato.idiomas.all|slice:":2" %}
+          {% for idioma in candidato.idiomas.all|slice:":1" %}
             <span class="tag tag-city">{{ idioma.idioma }} · {{ idioma.get_nivel_display }}</span>
           {% endfor %}
         </div>
         <div class="candidato-footer">
-          <span class="candidato-habilidades">
-            {{ candidato.habilidades|slice:":4"|join:", " }}
-          </span>
+          <span class="candidato-habilidades">{{ candidato.habilidades|slice:":3"|join:", " }}</span>
           <span class="btn-ver">Ver perfil →</span>
         </div>
       </div>
@@ -339,4 +358,13 @@
   </div>
 
 </div>
+
+{% block extra_js %}
+<script>
+function toggleFiltros() {
+  document.getElementById('sidebar-filtros').classList.toggle('open');
+}
+</script>
+{% endblock %}
+
 {% endblock %}

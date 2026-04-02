@@ -19,7 +19,7 @@
     .navbar {
       background: #fff;
       border-bottom: 1px solid #e5e5e3;
-      padding: 0 24px;
+      padding: 0 16px;
       display: flex;
       align-items: center;
       height: 58px;
@@ -32,25 +32,70 @@
       font-weight: 600;
       color: #1a1a1a;
       text-decoration: none;
+      flex-shrink: 0;
     }
     .navbar-logo span { color: #5349B7; }
     .navbar-pais {
       font-size: 12px;
       color: #888;
-      margin-left: 8px;
+      margin-left: 6px;
+      flex-shrink: 0;
     }
     .navbar-nav {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 12px;
       margin-left: auto;
     }
     .navbar-nav a {
       font-size: 14px;
       color: #555;
       text-decoration: none;
+      white-space: nowrap;
     }
     .navbar-nav a:hover { color: #1a1a1a; }
+
+    /* MENU HAMBURGUESA */
+    .navbar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: auto;
+    }
+    .navbar-toggle span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #1a1a1a;
+      margin: 5px 0;
+      border-radius: 2px;
+      transition: all .2s;
+    }
+    .navbar-mobile {
+      display: none;
+      position: fixed;
+      top: 58px;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-bottom: 1px solid #e5e5e3;
+      padding: 16px;
+      z-index: 99;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .navbar-mobile.open { display: flex; }
+    .navbar-mobile a {
+      font-size: 15px;
+      color: #555;
+      text-decoration: none;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0ee;
+    }
+    .navbar-mobile a:last-child { border-bottom: none; }
+
     .btn {
       display: inline-block;
       padding: 8px 16px;
@@ -59,23 +104,24 @@
       font-weight: 500;
       cursor: pointer;
       text-decoration: none;
-      border: none;
       transition: all .15s;
+      white-space: nowrap;
     }
     .btn-primary {
       background: #5349B7;
-      color: #fff;
+      color: #fff !important;
+      border: 1px solid #5349B7;
     }
-    .btn-primary:hover { background: #3C3489; }
+    .btn-primary:hover { background: #3C3489; border-color: #3C3489; }
     .btn-outline {
-      background: transparent;
-      color: #5349B7;
-      border: 1px solid #AFA9EC;
+      background: #fff;
+      color: #5349B7 !important;
+      border: 1px solid #5349B7;
     }
     .btn-outline:hover { background: #EEEDFE; }
 
     /* MENSAJES */
-    .messages { padding: 12px 24px 0; }
+    .messages { padding: 12px 16px 0; }
     .message {
       padding: 10px 16px;
       border-radius: 8px;
@@ -86,18 +132,16 @@
     .message.error   { background: #FCEBEB; color: #A32D2D; }
     .message.info    { background: #EEEDFE; color: #3C3489; }
 
-    /* CONTENIDO */
     .container {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 16px;
     }
 
-    /* FOOTER */
     .footer {
       background: #fff;
       border-top: 1px solid #e5e5e3;
-      padding: 24px;
+      padding: 24px 16px;
       text-align: center;
       font-size: 13px;
       color: #888;
@@ -105,7 +149,6 @@
     }
     .footer a { color: #5349B7; text-decoration: none; }
 
-    /* UTILIDADES */
     .tag {
       display: inline-block;
       font-size: 11px;
@@ -159,20 +202,25 @@
       font-weight: 600;
       flex-shrink: 0;
     }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .navbar-nav { display: none; }
+      .navbar-toggle { display: block; }
+      .btn { padding: 7px 12px; font-size: 13px; }
+    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
 
 <nav class="navbar">
-  <a href="{% url 'home' %}" class="navbar-logo">
-    Senior<span>Talent</span>
-  </a>
+  <a href="{% url 'home' %}" class="navbar-logo"><span style="color:#888;font-weight:400;font-size:13px;">Smart Logic App · </span>Senior<span>Talent</span></a>
   <span class="navbar-pais">· {{ pais_nombre }}</span>
 
+  <!-- Desktop nav -->
   <div class="navbar-nav">
-    <a href="{% url 'directorio' %}">Directorio</a>
-
+    <a href="{% url 'directorio' %}">Ver Profesionales</a>
     {% if user.is_authenticated %}
       {% if user.tipo == 'candidato' %}
         <a href="{% url 'dashboard' %}">Mi perfil</a>
@@ -183,10 +231,32 @@
     {% else %}
       <a href="{% url 'login' %}">Iniciar sesión</a>
       <a href="{% url 'registro_candidato' %}" class="btn btn-outline">Soy profesional</a>
-      <a href="{% url 'registro_empresa' %}" class="btn btn-primary">Soy empresa</a>
+      <a href="{% url 'registro_empresa' %}" class="btn btn-primary">Soy empresa →</a>
     {% endif %}
   </div>
+
+  <!-- Hamburguesa móvil -->
+  <button class="navbar-toggle" onclick="toggleMenu()" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+
+<!-- Menú móvil -->
+<div class="navbar-mobile" id="navbar-mobile">
+  <a href="{% url 'directorio' %}">Ver Profesionales</a>
+  {% if user.is_authenticated %}
+    {% if user.tipo == 'candidato' %}
+      <a href="{% url 'dashboard' %}">Mi perfil</a>
+    {% else %}
+      <a href="{% url 'empresa_candidatos' %}">Mis candidatos</a>
+    {% endif %}
+    <a href="{% url 'logout' %}">Salir</a>
+  {% else %}
+    <a href="{% url 'login' %}">Iniciar sesión</a>
+    <a href="{% url 'registro_candidato' %}" class="btn btn-outline" style="text-align:center;">Soy profesional</a>
+    <a href="{% url 'registro_empresa' %}" class="btn btn-primary" style="text-align:center;">Soy empresa →</a>
+  {% endif %}
+</div>
 
 {% if messages %}
 <div class="messages">
@@ -201,12 +271,16 @@
 <footer class="footer">
   <p>© 2026 SeniorTalent · Talento senior de Latinoamérica</p>
   <p style="margin-top:6px;">
-    <a href="#">Términos</a> · 
-    <a href="#">Privacidad</a> · 
-    <a href="#">Contacto</a>
+    <a href="#">Términos</a> · <a href="#">Privacidad</a> · <a href="#">Contacto</a>
   </p>
 </footer>
 
 {% block extra_js %}{% endblock %}
+
+<script>
+function toggleMenu() {
+  document.getElementById('navbar-mobile').classList.toggle('open');
+}
+</script>
 </body>
 </html>

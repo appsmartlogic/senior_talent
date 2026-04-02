@@ -3,7 +3,7 @@
 {% block title %}Editar perfil · SeniorTalent{% endblock %}
 
 {% block extra_css %}
-<style>
+ <style>
   .editar-wrap {
     max-width: 760px;
     margin: 32px auto;
@@ -150,9 +150,19 @@
 .cv-uploader p { font-size: 13px; color: #888; margin-bottom: 4px; }
 .cv-loading {
   display: none;
-  font-size: 14px;
-  color: #5349B7;
-  margin-top: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #5349B7, #3C3489);
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-top: 16px;
+  letter-spacing: .3px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .85; transform: scale(1.02); }
 }
 .cv-resultado {
   display: none;
@@ -188,7 +198,7 @@
       <div class="cv-uploader" id="cv-drop" onclick="document.getElementById('cv-input').click()">
         <div class="cv-uploader-icon">📄</div>
         <h3>Arrastra tu CV aquí o haz clic para seleccionar</h3>
-        <p>Solo PDF · Máximo 5 MB</p>
+        <p style="color:#A32D2D;font-weight:500;">Solo PDF · Máximo 10 MB</p>
         <input type="file" id="cv-input" accept=".pdf" style="display:none">
         <div class="cv-loading" id="cv-loading">⏳ Procesando con IA, espera un momento...</div>
         <div class="cv-resultado" id="cv-resultado"></div>
@@ -234,8 +244,8 @@
         <div class="form-group">
           <label>Años de experiencia</label>
           <input type="number" name="años_experiencia" class="form-control"
-                 value="{{ candidato.años_experiencia }}" min="10" max="60">
-          <small>Mínimo 10 años</small>
+                 value="{{ candidato.años_experiencia }}" min="5" max="60">
+          <small>Mínimo 5 años</small>
         </div>
       </div>
 
@@ -302,6 +312,71 @@
       </div>
     </div>
 
+    <!-- EXPERIENCIA LABORAL -->
+<div class="seccion">
+  <h2>Experiencia laboral</h2>
+  <div id="experiencias-container">
+    {% for exp in candidato.experiencias.all %}
+    <div class="item-form" style="background:#f7f7f5;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;">
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="form-group"><label>Empresa</label><input type="text" name="exp_empresa" class="form-control" value="{{ exp.empresa }}"></div>
+        <div class="form-group"><label>Cargo</label><input type="text" name="exp_cargo" class="form-control" value="{{ exp.cargo }}"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="form-group"><label>Año inicio</label><input type="number" name="exp_inicio" class="form-control" value="{{ exp.año_inicio }}" placeholder="2010"></div>
+        <div class="form-group"><label>Año fin (vacío = actual)</label><input type="number" name="exp_fin" class="form-control" value="{{ exp.año_fin }}" placeholder="2020"></div>
+      </div>
+      <div class="form-group"><label>Descripción</label><textarea name="exp_desc" class="form-control" rows="2">{{ exp.descripcion }}</textarea></div>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn-agregar" onclick="agregarExperiencia()">+ Agregar experiencia</button>
+</div>
+
+<!-- EDUCACIÓN -->
+<div class="seccion">
+  <h2>Educación</h2>
+  <div id="educacion-container">
+    {% for edu in candidato.educaciones.all %}
+    <div class="item-form" style="background:#f7f7f5;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;">
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+      <div class="form-row">
+        <div class="form-group"><label>Título</label><input type="text" name="edu_titulo" class="form-control" value="{{ edu.titulo }}"></div>
+        <div class="form-group"><label>Institución</label><input type="text" name="edu_institucion" class="form-control" value="{{ edu.institucion }}"></div>
+        <div class="form-group" style="max-width:100px;"><label>Año</label><input type="number" name="edu_año" class="form-control" value="{{ edu.año_fin }}" placeholder="2005"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn-agregar" onclick="agregarEducacion()">+ Agregar educación</button>
+</div>
+
+<!-- IDIOMAS -->
+<div class="seccion">
+  <h2>Idiomas</h2>
+  <div id="idiomas-container">
+    {% for idioma in candidato.idiomas.all %}
+    <div class="item-form" style="background:#f7f7f5;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;">
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+      <div class="form-row">
+        <div class="form-group"><label>Idioma</label><input type="text" name="idioma_nombre" class="form-control" value="{{ idioma.idioma }}" placeholder="Inglés"></div>
+        <div class="form-group">
+          <label>Nivel</label>
+          <select name="idioma_nivel" class="form-control">
+            <option value="nativo" {% if idioma.nivel == 'nativo' %}selected{% endif %}>Nativo</option>
+            <option value="avanzado" {% if idioma.nivel == 'avanzado' %}selected{% endif %}>Avanzado (C1-C2)</option>
+            <option value="intermedio" {% if idioma.nivel == 'intermedio' %}selected{% endif %}>Intermedio (B1-B2)</option>
+            <option value="basico" {% if idioma.nivel == 'basico' %}selected{% endif %}>Básico (A1-A2)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn-agregar" onclick="agregarIdioma()">+ Agregar idioma</button>
+</div>
+
     <!-- BOTÓN GUARDAR -->
     <button type="submit" class="btn-guardar">Guardar cambios</button>
 
@@ -319,64 +394,136 @@ const drop      = document.getElementById('cv-drop');
 input.addEventListener('change', function() {
   if (this.files.length > 0) subirCV(this.files[0]);
 });
-
-drop.addEventListener('dragover', e => {
-  e.preventDefault();
-  drop.style.borderColor = '#5349B7';
-});
-drop.addEventListener('dragleave', () => {
-  drop.style.borderColor = '#ddd';
-});
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = '#5349B7'; });
+drop.addEventListener('dragleave', () => { drop.style.borderColor = '#ddd'; });
 drop.addEventListener('drop', e => {
-  e.preventDefault();
-  drop.style.borderColor = '#ddd';
+  e.preventDefault(); drop.style.borderColor = '#ddd';
   const file = e.dataTransfer.files[0];
   if (file && file.name.endsWith('.pdf')) subirCV(file);
 });
 
 function subirCV(file) {
   loading.style.display   = 'block';
+  loading.textContent     = '⏳ Subiendo CV...';
   resultado.style.display = 'none';
-
   const formData = new FormData();
   formData.append('cv', file);
   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-  fetch('{% url "subir_cv_ia" %}', {
-    method: 'POST',
-    body: formData,
-  })
+  fetch('{% url "subir_cv_ia" %}', { method: 'POST', body: formData })
   .then(r => r.json())
   .then(data => {
-    loading.style.display = 'none';
-    if (data.ok) {
-      const d = data.datos;
-      if (d.cargo_actual)     document.querySelector('[name=cargo_actual]').value     = d.cargo_actual;
-      if (d.años_experiencia) document.querySelector('[name=años_experiencia]').value = d.años_experiencia;
-      if (d.ciudad)           document.querySelector('[name=ciudad]').value           = d.ciudad;
-      if (d.resumen)          document.querySelector('[name=resumen]').value          = d.resumen;
-      if (d.habilidades && d.habilidades.length) {
-        document.querySelector('[name=habilidades]').value = d.habilidades.join(', ');
-      }
-      resultado.style.display    = 'block';
-      resultado.style.background = '#E1F5EE';
-      resultado.style.color      = '#0F6E56';
-      resultado.innerHTML        = '✓ CV procesado — revisa los campos y guarda tu perfil.';
-      document.querySelector('[name=cargo_actual]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (data.ok && data.task_id) {
+      loading.textContent = '🤖 IA analizando tu CV... (puede tardar hasta 60 segundos) Espere....';
+      pollEstado(data.task_id);
     } else {
-      resultado.style.display    = 'block';
-      resultado.style.background = '#FCEBEB';
-      resultado.style.color      = '#A32D2D';
-      resultado.innerHTML        = '✗ Error: ' + data.error;
+      mostrarError(data.error || 'Error desconocido');
     }
   })
-  .catch(() => {
-    loading.style.display      = 'none';
-    resultado.style.display    = 'block';
-    resultado.style.background = '#FCEBEB';
-    resultado.style.color      = '#A32D2D';
-    resultado.innerHTML        = '✗ Error de conexión. Intenta de nuevo.';
-  });
+  .catch(() => mostrarError('Error de conexión. Intenta de nuevo.'));
+}
+
+function pollEstado(taskId) {
+  setTimeout(() => {
+    fetch(`/dashboard/cv/estado/${taskId}/`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.estado === 'listo') {
+        loading.style.display = 'none';
+        const d = data.resultado && data.resultado.datos;
+        if (d) llenarCampos(d);
+        resultado.style.display    = 'block';
+        resultado.style.background = '#E1F5EE';
+        resultado.style.color      = '#0F6E56';
+        resultado.innerHTML = `✓ CV procesado por IA — <strong>revisa y corrige todos los campos antes de guardar.</strong><br>
+        <span style="font-size:12px;color:#0a5240;margin-top:4px;display:block;">
+        ⚠ La IA puede cometer errores. Verifica que tu nombre, cargo, experiencia, educación e idiomas sean correctos antes de publicar tu perfil.
+        </span>`;
+        document.querySelector('[name=cargo_actual]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (data.estado === 'error') {
+        loading.style.display = 'none';
+        mostrarError(data.error);
+      } else {
+        loading.textContent = '🤖 IA analizando tu CV... (puede tardar hasta 60 segundos) Espere...';
+        pollEstado(taskId);
+      }
+    })
+    .catch(() => pollEstado(taskId));
+  }, 3000);
+}
+
+function llenarCampos(d) {
+  if (d.cargo_actual)     document.querySelector('[name=cargo_actual]').value     = d.cargo_actual;
+  if (d.años_experiencia) document.querySelector('[name=años_experiencia]').value = d.años_experiencia;
+  if (d.ciudad)           document.querySelector('[name=ciudad]').value           = d.ciudad;
+  if (d.resumen)          document.querySelector('[name=resumen]').value          = d.resumen;
+  if (d.habilidades && d.habilidades.length)
+    document.querySelector('[name=habilidades]').value = d.habilidades.join(', ');
+
+ // Limpiar y llenar experiencias
+  document.getElementById('experiencias-container').innerHTML = '';
+  if (d.experiencias && d.experiencias.length) {
+    d.experiencias.forEach(e => agregarExperiencia(e));
+  }
+
+  // Limpiar y llenar educación
+  document.getElementById('educacion-container').innerHTML = '';
+  if (d.educacion && d.educacion.length) {
+    d.educacion.forEach(e => agregarEducacion(e));
+  }
+
+  // Limpiar y llenar idiomas
+  document.getElementById('idiomas-container').innerHTML = '';
+  if (d.idiomas && d.idiomas.length) {
+    d.idiomas.forEach(e => agregarIdioma(e));
+  }
+
+  // Mostrar advertencias de campos faltantes
+  mostrarCamposFaltantes(d);
+}
+
+function mostrarCamposFaltantes(d) {
+  // Eliminar aviso anterior si existe
+  const avisoAnterior = document.getElementById('aviso-faltantes');
+  if (avisoAnterior) avisoAnterior.remove();
+
+  const faltantes = [];
+  if (!d.cargo_actual)     faltantes.push('Cargo actual');
+  if (!d.años_experiencia) faltantes.push('Años de experiencia');
+  if (!d.resumen)          faltantes.push('Resumen profesional');
+  faltantes.push('Sectores de experiencia — selecciónalos manualmente');
+
+  const aviso = document.createElement('div');
+  aviso.id = 'aviso-faltantes';
+  aviso.style.cssText = 'background:#FCEBEB;border:1px solid #F7C1C1;border-radius:8px;padding:14px 16px;margin-top:12px;font-size:13px;color:#A32D2D;';
+  aviso.innerHTML = `
+    <strong style="display:block;margin-bottom:8px;font-size:14px;">⚠ Completa manualmente estos campos:</strong>
+    ${faltantes.map(f => `<div style="padding:3px 0;">✗ ${f}</div>`).join('')}
+  `;
+  resultado.after(aviso);
+
+  // Resaltar campos vacíos en rojo
+  if (!d.cargo_actual)     resaltarCampo('[name=cargo_actual]');
+  if (!d.años_experiencia) resaltarCampo('[name=años_experiencia]');
+  if (!d.resumen)          resaltarCampo('[name=resumen]');
+}
+
+function resaltarCampo(selector) {
+  const campo = document.querySelector(selector);
+  if (!campo) return;
+  campo.style.borderColor = '#A32D2D';
+  campo.style.background  = '#FFF5F5';
+  campo.addEventListener('input', function() {
+    this.style.borderColor = '';
+    this.style.background  = '';
+  }, { once: true });
+}
+
+function mostrarError(msg) {
+  loading.style.display      = 'none';
+  resultado.style.display    = 'block';
+  resultado.style.background = '#FCEBEB';
+  resultado.style.color      = '#A32D2D';
+  resultado.innerHTML        = '✗ Error: ' + msg;
 }
 
 // Preview foto
@@ -390,5 +537,57 @@ document.getElementById('foto-input').addEventListener('change', function() {
   };
   reader.readAsDataURL(file);
 });
+
+function agregarExperiencia(datos) {
+  const c = document.getElementById('experiencias-container');
+  const d = datos || {};
+  const div = document.createElement('div');
+  div.style.cssText = 'background:#f7f7f5;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;';
+  div.innerHTML = `
+    <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+    <div class="form-row" style="margin-bottom:10px;">
+      <div class="form-group"><label>Empresa</label><input type="text" name="exp_empresa" class="form-control" value="${d.empresa||''}"></div>
+      <div class="form-group"><label>Cargo</label><input type="text" name="exp_cargo" class="form-control" value="${d.cargo||''}"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px;">
+      <div class="form-group"><label>Año inicio</label><input type="number" name="exp_inicio" class="form-control" value="${d.año_inicio||''}" placeholder="2010"></div>
+      <div class="form-group"><label>Año fin (vacío = actual)</label><input type="number" name="exp_fin" class="form-control" value="${d.año_fin||''}" placeholder="2020"></div>
+    </div>
+    <div class="form-group"><label>Descripción</label><textarea name="exp_desc" class="form-control" rows="2">${d.descripcion||''}</textarea></div>`;
+  c.appendChild(div);
+}
+
+function agregarEducacion(datos) {
+  const c = document.getElementById('educacion-container');
+  const d = datos || {};
+  const div = document.createElement('div');
+  div.style.cssText = 'background:#f7f7f5;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;';
+  div.innerHTML = `
+    <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+    <div class="form-row">
+      <div class="form-group"><label>Título</label><input type="text" name="edu_titulo" class="form-control" value="${d.titulo||''}"></div>
+      <div class="form-group"><label>Institución</label><input type="text" name="edu_institucion" class="form-control" value="${d.institucion||''}"></div>
+      <div class="form-group" style="max-width:100px;"><label>Año</label><input type="number" name="edu_año" class="form-control" value="${d.año_fin||''}" placeholder="2005"></div>
+    </div>`;
+  c.appendChild(div);
+}
+
+function agregarIdioma(datos) {
+  const c = document.getElementById('idiomas-container');
+  const d = datos || {};
+  const niveles = ['nativo','avanzado','intermedio','basico'];
+  const labels  = ['Nativo','Avanzado (C1-C2)','Intermedio (B1-B2)','Básico (A1-A2)'];
+  const opts = niveles.map((v,i) => `<option value="${v}" ${d.nivel===v?'selected':''}>${labels[i]}</option>`).join('');
+  const div = document.createElement('div');
+  div.style.cssText = 'background:#f7f7f5;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;';
+  div.innerHTML = `
+    <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+    <div class="form-row">
+      <div class="form-group"><label>Idioma</label><input type="text" name="idioma_nombre" class="form-control" value="${d.idioma||''}" placeholder="Inglés"></div>
+      <div class="form-group"><label>Nivel</label><select name="idioma_nivel" class="form-control">${opts}</select></div>
+    </div>`;
+  c.appendChild(div);
+}
+
 </script>
 {% endblock %}

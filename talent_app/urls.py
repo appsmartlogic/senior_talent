@@ -27,4 +27,5 @@ urlpatterns = [
     path('pago/cancelado/', views.pago_cancelado, name='pago_cancelado'),
     path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
     path('empresa/cv/<int:candidato_id>/pdf/', views.descargar_pdf_cv, name='descargar_pdf_cv'),
+    path('dashboard/cv/estado/<str:task_id>/', views.estado_tarea, name='estado_tarea'),
 ]

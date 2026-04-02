@@ -4,175 +4,28 @@
 
 {% block extra_css %}
 <style>
-  .dashboard-wrap {
-    max-width: 900px;
-    margin: 32px auto;
-    padding: 0 24px;
-  }
-  .dashboard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-  }
-  .dashboard-header h1 {
-    font-size: 22px;
-    font-weight: 600;
-  }
-  .dashboard-header p {
-    font-size: 14px;
-    color: #888;
-    margin-top: 4px;
-  }
-
-  /* ESTADO DEL PERFIL */
-  .estado-banner {
-    border-radius: 10px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-  }
-  .estado-pendiente {
-    background: #FAEEDA;
-    color: #633806;
-    border: 1px solid #FAC775;
-  }
-  .estado-aprobado {
-    background: #E1F5EE;
-    color: #0F6E56;
-    border: 1px solid #9FE1CB;
-  }
-  .estado-rechazado {
-    background: #FCEBEB;
-    color: #A32D2D;
-    border: 1px solid #F7C1C1;
-  }
-  .estado-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  /* STATS */
-  .stats-grid {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .stat-card {
-    flex: 1;
-    background: #fff;
-    border: 1px solid #e5e5e3;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-  }
-  .stat-num {
-    font-size: 28px;
-    font-weight: 700;
-    color: #5349B7;
-  }
-  .stat-label {
-    font-size: 13px;
-    color: #888;
-    margin-top: 4px;
-  }
-
-  /* SECCIONES */
-  .seccion {
-    background: #fff;
-    border: 1px solid #e5e5e3;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 16px;
-  }
-  .seccion-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e5e5e3;
-  }
-  .seccion-header h2 {
-    font-size: 15px;
-    font-weight: 600;
-  }
-  .seccion-header a {
-    font-size: 13px;
-    color: #5349B7;
-    text-decoration: none;
-  }
-
-  .perfil-preview {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-  }
-  .perfil-preview-info {}
-  .perfil-preview-nombre {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-  .perfil-preview-cargo {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 8px;
-  }
-  .perfil-preview-tags {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .campo-vacio {
-    font-size: 13px;
-    color: #aaa;
-    font-style: italic;
-  }
-
-  /* CV UPLOADER */
-  .cv-uploader {
-    border: 2px dashed #ddd;
-    border-radius: 10px;
-    padding: 32px;
-    text-align: center;
-    transition: border-color .15s;
-    cursor: pointer;
-  }
-  .cv-uploader:hover { border-color: #AFA9EC; }
-  .cv-uploader-icon {
-    font-size: 32px;
-    margin-bottom: 12px;
-  }
-  .cv-uploader h3 {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-  .cv-uploader p {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 16px;
-  }
-  .cv-loading {
-    display: none;
-    font-size: 14px;
-    color: #5349B7;
-    margin-top: 12px;
-  }
-  .cv-resultado {
-    display: none;
-    margin-top: 16px;
-    padding: 12px;
-    background: #E1F5EE;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #0F6E56;
-  }
+  .dashboard-wrap { max-width: 900px; margin: 32px auto; padding: 0 24px; }
+  .dashboard-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .dashboard-header h1 { font-size: 22px; font-weight: 600; }
+  .dashboard-header p { font-size: 14px; color: #888; margin-top: 4px; }
+  .estado-banner { border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; font-size: 14px; }
+  .estado-pendiente { background: #FAEEDA; color: #633806; border: 1px solid #FAC775; }
+  .estado-aprobado { background: #E1F5EE; color: #0F6E56; border: 1px solid #9FE1CB; }
+  .estado-rechazado { background: #FCEBEB; color: #A32D2D; border: 1px solid #F7C1C1; }
+  .estado-icon { font-size: 20px; flex-shrink: 0; }
+  .stats-grid { display: flex; gap: 16px; margin-bottom: 24px; }
+  .stat-card { flex: 1; background: #fff; border: 1px solid #e5e5e3; border-radius: 12px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; color: #5349B7; }
+  .stat-label { font-size: 13px; color: #888; margin-top: 4px; }
+  .seccion { background: #fff; border: 1px solid #e5e5e3; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .seccion-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e5e5e3; }
+  .seccion-header h2 { font-size: 15px; font-weight: 600; }
+  .seccion-header a { font-size: 13px; color: #5349B7; text-decoration: none; }
+  .perfil-preview { display: flex; gap: 16px; align-items: center; }
+  .perfil-preview-nombre { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .perfil-preview-cargo { font-size: 14px; color: #666; margin-bottom: 8px; }
+  .perfil-preview-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .campo-vacio { font-size: 13px; color: #aaa; font-style: italic; }
 </style>
 {% endblock %}
 
@@ -235,109 +88,26 @@
       <h2>Tu perfil</h2>
       <a href="{% url 'editar_perfil' %}">Editar →</a>
     </div>
-    <div class="perfil-preview">
-      <div class="avatar" style="background:#EEEDFE;color:#3C3489;width:60px;height:60px;font-size:20px;">
-        {{ candidato.iniciales }}
-      </div>
-      <div class="perfil-preview-info">
-        <div class="perfil-preview-nombre">{{ candidato.nombre }}</div>
-        <div class="perfil-preview-cargo">
-          {% if candidato.cargo_actual %}
-            {{ candidato.cargo_actual }}
-          {% else %}
-            <span class="campo-vacio">Sin cargo definido — completa tu perfil</span>
-          {% endif %}
-        </div>
-        <div class="perfil-preview-tags">
-          {% if candidato.años_experiencia %}
-            <span class="tag tag-exp">{{ candidato.años_experiencia }} años exp.</span>
-          {% endif %}
-          {% for sector in candidato.sectores.all|slice:":3" %}
-            <span class="tag tag-sec">{{ sector.nombre }}</span>
-          {% endfor %}
-          <span class="tag tag-city">📍 {{ candidato.ciudad }}, {{ candidato.pais.nombre }}</span>
-        </div>
-      </div>
-    </div>
+    <div class="perfil-preview-info">
+  <div class="perfil-preview-nombre">{{ candidato.nombre }}</div>
+  {% if candidato.cargo_actual and candidato.cargo_actual != candidato.resumen %}
+  {% endif %}
+  {% if candidato.resumen %}
+  <div style="font-size:13px;color:#666;margin-top:6px;line-height:1.6;">
+    {{ candidato.resumen|truncatechars:280 }}
   </div>
-
-  <!-- SUBIR CV CON IA -->
-  <div class="seccion">
-    <div class="seccion-header">
-      <h2>Subir CV con IA</h2>
-    </div>
-    <p style="font-size:13px;color:#888;margin-bottom:16px;">
-      Sube tu CV en PDF y la IA extraerá automáticamente tu información.
-      El archivo <strong>no se almacena</strong> — solo se usa para llenar tu perfil.
-    </p>
-
-    <div class="cv-uploader" id="cv-drop" onclick="document.getElementById('cv-input').click()">
-      <div class="cv-uploader-icon">📄</div>
-      <h3>Arrastra tu CV aquí o haz clic para seleccionar</h3>
-      <p>Solo PDF · Máximo 5 MB</p>
-      <input type="file" id="cv-input" accept=".pdf" style="display:none">
-      <div class="cv-loading" id="cv-loading">⏳ Procesando con IA, espera un momento...</div>
-      <div class="cv-resultado" id="cv-resultado"></div>
-    </div>
+  {% endif %}
+  <div class="perfil-preview-tags">
+    {% if candidato.años_experiencia %}
+      <span class="tag tag-exp">{{ candidato.años_experiencia }} años exp.</span>
+    {% endif %}
+    {% for sector in candidato.sectores.all|slice:":3" %}
+      <span class="tag tag-sec">{{ sector.nombre }}</span>
+    {% endfor %}
+    <span class="tag tag-city">📍 {{ candidato.ciudad }}, {{ candidato.pais.nombre }}</span>
+  </div>
+</div>
   </div>
 
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-const input    = document.getElementById('cv-input');
-const loading  = document.getElementById('cv-loading');
-const resultado = document.getElementById('cv-resultado');
-const drop     = document.getElementById('cv-drop');
-
-input.addEventListener('change', function() {
-  if (this.files.length > 0) subirCV(this.files[0]);
-});
-
-drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = '#5349B7'; });
-drop.addEventListener('dragleave', () => { drop.style.borderColor = '#ddd'; });
-drop.addEventListener('drop', e => {
-  e.preventDefault();
-  drop.style.borderColor = '#ddd';
-  const file = e.dataTransfer.files[0];
-  if (file && file.name.endsWith('.pdf')) subirCV(file);
-});
-
-function subirCV(file) {
-  loading.style.display  = 'block';
-  resultado.style.display = 'none';
-
-  const formData = new FormData();
-  formData.append('cv', file);
-  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-  fetch('{% url "subir_cv_ia" %}', {
-    method: 'POST',
-    body: formData,
-  })
-  .then(r => r.json())
-  .then(data => {
-    loading.style.display = 'none';
-    if (data.ok) {
-      resultado.style.display = 'block';
-      resultado.innerHTML = '✓ CV procesado correctamente. <a href="{% url "editar_perfil" %}">Ir a editar perfil →</a>';
-      // Guardar datos en sessionStorage para pre-llenar el formulario
-      sessionStorage.setItem('cv_datos', JSON.stringify(data.datos));
-    } else {
-      resultado.style.display = 'block';
-      resultado.style.background = '#FCEBEB';
-      resultado.style.color = '#A32D2D';
-      resultado.innerHTML = '✗ Error: ' + data.error;
-    }
-  })
-  .catch(() => {
-    loading.style.display = 'none';
-    resultado.style.display = 'block';
-    resultado.style.background = '#FCEBEB';
-    resultado.style.color = '#A32D2D';
-    resultado.innerHTML = '✗ Error de conexión. Intenta de nuevo.';
-  });
-}
-</script>
-{% endblock %}
+{% endblock %}<div class="perfil-preview-cargo">
