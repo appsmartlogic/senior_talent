@@ -133,12 +133,19 @@ def perfil_candidato(request, pk):
     ya_pago = False
     empresa_activa = False
     if request.user.is_authenticated and hasattr(request.user, 'empresa'):
+        empresa = request.user.empresa
         ya_pago = DescargaCV.objects.filter(
-            empresa=request.user.empresa,
+            empresa=empresa,
             candidato=candidato,
             estado=DescargaCV.ESTADO_PAGADO
         ).exists()
-        empresa_activa = request.user.empresa.activa
+        empresa_activa = empresa.activa
+        if empresa_activa and ya_pago:
+            try:
+                from .emails import enviar_email_descarga_cv
+                enviar_email_descarga_cv(empresa, candidato)
+            except Exception as e:
+                logger.error(f'Error enviando email ver perfil: {e}')
     return render(request, 'talent_app/perfil_candidato.html', {
         'candidato': candidato,
         'ya_pago': ya_pago,
