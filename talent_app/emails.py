@@ -37,3 +37,21 @@ def enviar_email_descarga_cv(empresa, candidato):
     )
     msg_empresa.attach_alternative(html_empresa, 'text/html')
     msg_empresa.send(fail_silently=True)
+
+
+def enviar_email_empresa_activa(empresa):
+    """
+    Notifica a la empresa cuando su cuenta es activada.
+    """
+    asunto = '¡Tu cuenta en SeniorTalent está activa!'
+    html = render_to_string('talent_app/emails/empresa_activa.html', {
+        'empresa': empresa,
+    })
+    msg = EmailMultiAlternatives(
+        subject=asunto,
+        body=f'Hola {empresa.nombre}, tu cuenta en Smart Logic App - SeniorTalent ha sido activada.',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[empresa.usuario.email],
+    )
+    msg.attach_alternative(html, 'text/html')
+    msg.send(fail_silently=True)

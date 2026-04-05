@@ -54,7 +54,13 @@ class Pais(models.Model):
     nombre               = models.CharField(max_length=100)
     moneda               = models.CharField(max_length=3, default='USD')
     num_tributario_label = models.CharField(max_length=20, default='NIT')
+    zona_horaria        = models.CharField(max_length=50, default='America/Bogota', help_text='Ejemplo: America/Bogota, America/Mexico_City, Europe/Madrid')
     activo               = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        self.moneda = self.moneda.upper()
+        self.codigo = self.codigo.upper()
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name_plural = 'países'
@@ -133,9 +139,7 @@ class Candidato(models.Model):
 
     def iniciales(self):
         partes = self.nombre.strip().split()
-        if len(partes) >= 2:
-            return (partes[0][0] + partes[-1][0]).upper()
-        return self.nombre[:2].upper()
+        return ''.join(p[0] for p in partes if p).upper()
 
 
 class ExperienciaLaboral(models.Model):
@@ -240,7 +244,7 @@ class DescargaCV(models.Model):
     candidato          = models.ForeignKey(Candidato, on_delete=models.PROTECT, related_name='descargas')
     stripe_payment_id  = models.CharField(max_length=200, blank=True)
     stripe_session_id  = models.CharField(max_length=200, blank=True)
-    monto_usd          = models.DecimalField(max_digits=8, decimal_places=2, default=5.00)
+    monto_usd = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, verbose_name='Monto')
     estado             = models.CharField(max_length=15, choices=ESTADOS, default=ESTADO_PENDIENTE)
     creado_en          = models.DateTimeField(auto_now_add=True)
     pagado_en          = models.DateTimeField(null=True, blank=True)
@@ -255,3 +259,41 @@ class DescargaCV(models.Model):
     @property
     def pagado(self):
         return self.estado == self.ESTADO_PAGADO
+    
+
+class PasarelaPago(models.Model):
+    STRIPE      = 'stripe'
+    WOMPI       = 'wompi'
+    MERCADOPAGO = 'mercadopago'
+    PAYPAL      = 'paypal'
+    PAYU        = 'payु'
+    PASARELAS = [
+        (STRIPE,      'Stripe'),
+        (WOMPI,       'Wompi'),
+        (MERCADOPAGO, 'MercadoPago'),
+        (PAYPAL,      'PayPal'),
+        (PAYU,        'PayU'),
+    ]
+
+    pais            = models.OneToOneField(Pais, on_delete=models.CASCADE, related_name='pasarela')
+    pasarela        = models.CharField(max_length=20, choices=PASARELAS, default=STRIPE)
+    public_key      = models.CharField(max_length=500, blank=True)
+    secret_key      = models.CharField(max_length=500, blank=True)
+    webhook_secret  = models.CharField(max_length=500, blank=True)
+    moneda          = models.CharField(max_length=3, default='USD')
+    precio_cv       = models.PositiveIntegerField(default=1, help_text='Indique monto en la moneda local)')    
+    activa          = models.BooleanField(default=True)
+    notas           = models.TextField(blank=True, help_text='Notas internas sobre esta configuración')
+    creado_en       = models.DateTimeField(auto_now_add=True)
+    actualizado_en  = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        self.moneda = self.moneda.upper()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'Pasarela de pago'
+        verbose_name_plural = 'Pasarelas de pago'
+
+    def __str__(self):
+        return f'{self.pais.nombre} — {self.get_pasarela_display()}'

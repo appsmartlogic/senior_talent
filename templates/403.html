@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sesión expirada · SeniorTalent</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f7f7f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e5e5e3;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    .icono { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #1a1a1a; }
+    p { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.6; }
+    .btn {
+      display: inline-block;
+      background: #5349B7;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .btn:hover { background: #3C3489; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icono">⏱</div>
+    <h1>Tu sesión expiró</h1>
+    <p>Por seguridad tu sesión ha caducado. Por favor inicia sesión de nuevo para continuar.</p>
+    <a href="/login/" class="btn">Iniciar sesión →</a>
+  </div>
+</body>
+</html>

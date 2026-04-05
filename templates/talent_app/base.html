@@ -215,7 +215,13 @@
 <body>
 
 <nav class="navbar">
-  <a href="{% url 'home' %}" class="navbar-logo"><span style="color:#888;font-weight:400;font-size:13px;">Smart Logic App · </span>Senior<span>Talent</span></a>
+  <a href="{% url 'home' %}" class="navbar-logo" style="display:flex;align-items:center;gap:6px;text-decoration:none;">
+    <span style="font-size:20px;font-weight:800;letter-spacing:-0.5px;">
+      <span style="color:#5349B7;">Senior</span><span style="color:#1a1a1a;">Talent</span>
+    </span>
+    <span style="font-size:10px;color:#aaa;font-weight:400;letter-spacing:.03em;margin-top:2px;">by Smart Logic App</span>
+  </a>
+
   <span class="navbar-pais">· {{ pais_nombre }}</span>
 
   <!-- Desktop nav -->
@@ -229,7 +235,6 @@
       {% endif %}
       <a href="{% url 'logout' %}">Salir</a>
     {% else %}
-      <a href="{% url 'login' %}">Iniciar sesión</a>
       <a href="{% url 'registro_candidato' %}" class="btn btn-outline">Soy profesional</a>
       <a href="{% url 'registro_empresa' %}" class="btn btn-primary">Soy empresa →</a>
     {% endif %}
@@ -269,7 +274,7 @@
 {% block content %}{% endblock %}
 
 <footer class="footer">
-  <p>© 2026 SeniorTalent · Talento senior de Latinoamérica</p>
+  <p>© 2026 Smart logic App - SeniorTalent · Talento senior de Latinoamérica</p>
   <p style="margin-top:6px;">
     <a href="#">Términos</a> · <a href="#">Privacidad</a> · <a href="#">Contacto</a>
   </p>

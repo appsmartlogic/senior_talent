@@ -275,15 +275,21 @@
     {% if user.is_authenticated and user.tipo == 'empresa' %}
       {% if ya_pago %}
         <span class="btn-ya-pago">✓ CV ya descargado</span>
-      {% else %}
+      {% elif empresa_activa %}
         <a href="{% url 'iniciar_pago' candidato.pk %}" class="btn-descargar">
-          Descargar CV — $5 USD
+          Descargar CV — Pago por uso
         </a>
-        <p class="precio-info">Pago único · Recibes el CV completo con datos de contacto</p>
+        <p class="precio-info">Incluye CV completo y datos de contacto directos</p>
+      {% else %}
+        <button class="btn-descargar" disabled
+          style="opacity:.5;cursor:not-allowed;background:#aaa;border-color:#aaa;">
+          Cuenta pendiente de verificación
+        </button>
+        <p class="precio-info">Tu cuenta está siendo verificada. Te notificaremos cuando esté activa.</p>
       {% endif %}
     {% elif not user.is_authenticated %}
       <a href="{% url 'registro_empresa' %}" class="btn-descargar">
-        Regístrate para descargar CV
+        Regístrate para obtener contacto
       </a>
     {% endif %}
   </div>
@@ -378,7 +384,6 @@
       {% else %}
         <div class="bloque-privado">
           <p>Los datos de contacto están disponibles después de descargar el CV.</p>
-          <p style="font-size:12px;margin-top:4px;">Pago único de $5 USD</p>
         </div>
       {% endif %}
     </div>

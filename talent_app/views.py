@@ -1,3 +1,5 @@
+from weakref import ref
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
@@ -10,6 +12,13 @@ from django.utils import timezone
 from django.db.models import Q
 import stripe
 import json
+
+import logging
+from django.contrib.postgres.search import SearchVector
+
+from urllib3 import request
+logger = logging.getLogger('talent_app')
+
 
 from .models import (
     Usuario, Pais, Sector, Candidato, ExperienciaLaboral,
@@ -66,37 +75,75 @@ def directorio(request):
 
     q = request.GET.get('q')
     if q:
-        candidatos = candidatos.filter(
-            Q(nombre__icontains=q) |
-            Q(cargo_actual__icontains=q) |
-            Q(habilidades__icontains=q)
-        )
+        from functools import reduce
+        import operator
+
+        import unicodedata
+        def normalizar(texto):
+            return ''.join(
+                c for c in unicodedata.normalize('NFD', texto.lower())
+                if unicodedata.category(c) != 'Mn'
+            )
+
+        # DESPUÉS
+        def filtro_termino(termino):
+            return (
+                Q(cargo_actual__unaccent__icontains=termino) |
+                Q(habilidades__unaccent__icontains=termino) |
+                Q(resumen__unaccent__icontains=termino) |
+                Q(ciudad__unaccent__icontains=termino) |
+                Q(pais__nombre__unaccent__icontains=termino) |
+                Q(sectores__nombre__unaccent__icontains=termino) |
+                Q(idiomas__idioma__unaccent__icontains=termino) |
+                Q(disponibilidad__unaccent__icontains=termino)
+            )
+
+        # Frases separadas por coma = OR entre ellas
+        # Palabras dentro de cada frase = AND entre ellas
+        frases = [f.strip() for f in q.split(',') if f.strip()]
+        query_total = None
+        for frase in frases:
+            palabras = [p.strip() for p in frase.split() if p.strip()]
+            if not palabras:
+                continue
+            query_frase = reduce(operator.and_, [filtro_termino(p) for p in palabras])
+            query_total = query_frase if query_total is None else (query_total | query_frase)
+
+        if query_total is not None:
+            candidatos = candidatos.filter(query_total).distinct()
 
     paises   = Pais.objects.filter(activo=True)
     sectores = Sector.objects.all()
 
+    es_empresa_activa = (
+        request.user.is_authenticated
+        and hasattr(request.user, 'empresa')
+        and request.user.empresa.estado == 'activa'
+    )
     return render(request, 'talent_app/directorio.html', {
         'candidatos': candidatos.distinct(),
         'paises': paises,
         'sectores': sectores,
         'filtros': request.GET,
+        'es_empresa_activa': es_empresa_activa,
     })
-
 
 def perfil_candidato(request, pk):
     candidato = get_object_or_404(Candidato, pk=pk, estado=Candidato.ESTADO_APROBADO)
     ya_pago = False
+    empresa_activa = False
     if request.user.is_authenticated and hasattr(request.user, 'empresa'):
         ya_pago = DescargaCV.objects.filter(
             empresa=request.user.empresa,
             candidato=candidato,
             estado=DescargaCV.ESTADO_PAGADO
         ).exists()
+        empresa_activa = request.user.empresa.activa
     return render(request, 'talent_app/perfil_candidato.html', {
         'candidato': candidato,
         'ya_pago': ya_pago,
+        'empresa_activa': empresa_activa,
     })
-
 
 # ──────────────────────────────────────────
 # AUTH
@@ -338,7 +385,6 @@ def estado_tarea(request, task_id):
 # ──────────────────────────────────────────
 # DASHBOARD EMPRESA
 # ──────────────────────────────────────────
-
 @login_required
 def empresa_candidatos(request):
     empresa = get_object_or_404(Empresa, usuario=request.user)
@@ -347,54 +393,13 @@ def empresa_candidatos(request):
         estado=DescargaCV.ESTADO_PAGADO
     ).select_related('candidato', 'candidato__pais').order_by('-pagado_en')
 
+    total_invertido = sum(d.monto_usd for d in descargas_pagadas if d.monto_usd)
+
     return render(request, 'talent_app/empresa_candidatos.html', {
         'empresa': empresa,
         'descargas': descargas_pagadas,
+        'total_invertido': total_invertido,
     })
-
-
-@login_required
-def iniciar_pago(request, candidato_id):
-    empresa   = get_object_or_404(Empresa, usuario=request.user)
-    candidato = get_object_or_404(Candidato, pk=candidato_id, estado=Candidato.ESTADO_APROBADO)
-
-    ya_pago = DescargaCV.objects.filter(
-        empresa=empresa,
-        candidato=candidato,
-        estado=DescargaCV.ESTADO_PAGADO
-    ).exists()
-    if ya_pago:
-        messages.info(request, 'Ya descargaste este CV anteriormente.')
-        return redirect('empresa_candidatos')
-
-    descarga, _ = DescargaCV.objects.get_or_create(
-        empresa=empresa,
-        candidato=candidato,
-        defaults={'estado': DescargaCV.ESTADO_PENDIENTE}
-    )
-
-    session = stripe.checkout.Session.create(
-        payment_method_types=['card'],
-        line_items=[{
-            'price_data': {
-                'currency': 'usd',
-                'product_data': {'name': f'CV — {candidato.nombre}'},
-                'unit_amount': settings.PRECIO_CV_USD,
-            },
-            'quantity': 1,
-        }],
-        mode='payment',
-        success_url=request.build_absolute_uri(f'/pago/exito/?session_id={{CHECKOUT_SESSION_ID}}'),
-        cancel_url=request.build_absolute_uri('/pago/cancelado/'),
-        metadata={
-            'descarga_id': descarga.pk,
-            'empresa_id': empresa.pk,
-            'candidato_id': candidato.pk,
-        }
-    )
-    descarga.stripe_session_id = session.id
-    descarga.save(update_fields=['stripe_session_id'])
-    return redirect(session.url, code=303)
 
 
 def pago_exito(request):
@@ -438,9 +443,11 @@ def stripe_webhook(request):
                 descarga = DescargaCV.objects.get(pk=descarga_id)
                 descarga.estado            = DescargaCV.ESTADO_PAGADO
                 descarga.stripe_payment_id = session.get('payment_intent', '')
-                descarga.pagado_en         = timezone.now()
-                descarga.save(update_fields=['estado', 'stripe_payment_id', 'pagado_en'])
-
+                import pytz
+                zona = pytz.timezone(descarga.empresa.pais.zona_horaria)
+                descarga.pagado_en = timezone.now().astimezone(zona)
+                descarga.monto_usd = transaction.get('amount_in_cents', 0) / 100
+                descarga.save(update_fields=['estado', 'stripe_payment_id', 'pagado_en', 'monto_usd'])
                  # Enviar emails a candidato y empresa
                 from .emails import enviar_email_descarga_cv
                 enviar_email_descarga_cv(descarga.empresa, descarga.candidato)
@@ -481,3 +488,245 @@ def descargar_pdf_cv(request, candidato_id):
     nombre_archivo = f"CV_{candidato.nombre.replace(' ', '_')}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     return response
+
+
+def error_403(request, exception=None):
+    return render(request, '403.html', status=403)
+
+@login_required
+def iniciar_pago(request, candidato_id):
+    empresa   = get_object_or_404(Empresa, usuario=request.user)
+    candidato = get_object_or_404(Candidato, pk=candidato_id, estado=Candidato.ESTADO_APROBADO)
+
+    logger.info(f'Empresa {empresa.nombre} intenta descargar CV de {candidato.nombre}')
+
+    ya_pago = DescargaCV.objects.filter(
+        empresa=empresa,
+        candidato=candidato,
+        estado=DescargaCV.ESTADO_PAGADO
+    ).exists()
+    if ya_pago:
+        logger.info(f'CV ya descargado previamente — empresa: {empresa.nombre}')
+        messages.info(request, 'Ya descargaste este CV anteriormente.')
+        return redirect('empresa_candidatos')
+
+    # Obtener pasarela configurada para el país de la empresa
+    try:
+        pasarela_config = empresa.pais.pasarela
+        if not pasarela_config.activa:
+            messages.error(request, 'No hay pasarela de pago activa para tu país. Contáctanos.')
+            return redirect('perfil_candidato', pk=candidato_id)
+    except Exception:
+        messages.error(request, 'No hay pasarela de pago configurada para tu país. Contáctanos.')
+        logger.error(f'Sin pasarela configurada para país: {empresa.pais.nombre}')
+        return redirect('perfil_candidato', pk=candidato_id)
+
+    try:
+        descarga, _ = DescargaCV.objects.get_or_create(
+            empresa=empresa,
+            candidato=candidato,
+            defaults={'estado': DescargaCV.ESTADO_PENDIENTE}
+        )
+
+        pasarela = pasarela_config.pasarela
+
+        if pasarela == 'stripe':
+            import stripe as stripe_lib
+            stripe_lib.api_key = pasarela_config.secret_key
+            session = stripe_lib.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': pasarela_config.moneda.lower(),
+                        'product_data': {'name': f'CV — {candidato.nombre}'},
+                        'unit_amount': pasarela_config.precio_cv * 100,
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=request.build_absolute_uri(f'/pago/exito/?session_id={{CHECKOUT_SESSION_ID}}'),
+                cancel_url=request.build_absolute_uri('/pago/cancelado/'),
+                metadata={
+                    'descarga_id': descarga.pk,
+                    'empresa_id':  empresa.pk,
+                    'candidato_id': candidato.pk,
+                    'pasarela': pasarela,
+                }
+            )
+            descarga.stripe_session_id = session.id
+            descarga.save(update_fields=['stripe_session_id'])
+            logger.info(f'Sesión Stripe creada: {session.id} — empresa: {empresa.nombre}')
+            return redirect(session.url, code=303)
+
+        elif pasarela == 'wompi':
+            # Wompi — Colombia
+            # Redirige al checkout de Wompi
+            import hashlib
+            import time
+            ref = f'ST-{descarga.pk}-{int(time.time())}'
+            descarga.stripe_session_id = ref
+            descarga.save(update_fields=['stripe_session_id'])
+
+            monto_centavos = pasarela_config.precio_cv * 100
+            integrity_string = f"{ref}{monto_centavos}{pasarela_config.moneda.upper()}{pasarela_config.webhook_secret}"
+            signature = hashlib.sha256(integrity_string.encode('utf-8')).hexdigest()
+
+            wompi_url = (
+                f"https://checkout.wompi.co/p/"
+                f"?public-key={pasarela_config.public_key}"
+                f"&currency={pasarela_config.moneda.upper()}"
+                f"&amount-in-cents={monto_centavos}"
+                f"&reference={ref}"
+                f"&signature:integrity={signature}"
+                f"&redirect-url={request.build_absolute_uri('/pago/exito/')}"
+            )
+
+            logger.info(f'Wompi — ref: {ref} | monto: {pasarela_config.precio_cv} | moneda: {pasarela_config.moneda}')
+            logger.info(f'Wompi — integrity_string: {ref}{pasarela_config.precio_cv}{pasarela_config.moneda}{pasarela_config.webhook_secret}')
+
+            logger.info(f'Checkout Wompi iniciado — empresa: {empresa.nombre} — ref: {ref}')
+            return redirect(wompi_url)
+
+        elif pasarela == 'mercadopago':
+            import mercadopago
+            sdk = mercadopago.SDK(pasarela_config.secret_key)
+            preference = sdk.preference().create({
+                "items": [{
+                    "title": f"CV — {candidato.nombre}",
+                    "quantity": 1,
+                    "unit_price": pasarela_config.precio_cv,
+                    "currency_id": pasarela_config.moneda,
+                }],
+                "back_urls": {
+                    "success": request.build_absolute_uri('/pago/exito/'),
+                    "failure": request.build_absolute_uri('/pago/cancelado/'),
+                },
+                "auto_return": "approved",
+                "external_reference": str(descarga.pk),
+            })
+            logger.info(f'Preferencia MercadoPago creada — empresa: {empresa.nombre}')
+            return redirect(preference["response"]["init_point"])
+
+        else:
+            messages.error(request, f'Pasarela {pasarela} no implementada aún.')
+            return redirect('perfil_candidato', pk=candidato_id)
+
+    except Exception as e:
+        logger.error(f'Error al procesar pago — empresa: {empresa.nombre} — error: {e}')
+        messages.error(request, 'Error al procesar el pago. Intenta de nuevo.')
+        return redirect('perfil_candidato', pk=candidato_id)
+    
+
+@csrf_exempt
+def wompi_webhook(request):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+
+    try:
+        payload = json.loads(request.body)
+        logger.info(f'Wompi webhook recibido: {json.dumps(payload)}')
+
+        evento = payload.get('event')
+        if evento != 'transaction.updated':
+            return HttpResponse(status=200)
+
+        data        = payload.get('data', {})
+        transaction = data.get('transaction', {})
+        estado      = transaction.get('status')
+        referencia  = transaction.get('reference', '')
+
+        logger.info(f'Wompi — transacción: {referencia} | estado: {estado}')
+
+        # Si la referencia es de SmartLogicApp reenviar
+        if not referencia.startswith('ST-'):
+            import requests as req_lib
+            try:
+                resp = req_lib.post(
+                    'https://smartlogicapp.com/directorio/api/wompi/webhook/',
+                    json=payload,
+                    timeout=10,
+                    headers={'Content-Type': 'application/json'}
+                )
+                logger.info(f'Webhook reenviado a SmartLogicApp — status: {resp.status_code}')
+            except Exception as e:
+                logger.error(f'Error reenviando a SmartLogicApp: {e}')
+            return HttpResponse(status=200)
+
+        # Procesar pagos de SeniorTalent
+        if estado == 'APPROVED' and referencia.startswith('ST-'):
+            try:
+                partes      = referencia.split('-')
+                descarga_id = partes[1]
+                descarga    = DescargaCV.objects.get(pk=descarga_id)
+
+                if descarga.estado != DescargaCV.ESTADO_PAGADO:
+                    descarga.estado            = DescargaCV.ESTADO_PAGADO
+                    descarga.stripe_payment_id = transaction.get('id', '')
+                    import pytz
+                    zona = pytz.timezone(descarga.empresa.pais.zona_horaria)
+                    descarga.pagado_en = timezone.now().astimezone(zona)
+                    descarga.monto_usd = transaction.get('amount_in_cents', 0) / 100
+                    descarga.save(update_fields=['estado', 'stripe_payment_id', 'pagado_en', 'monto_usd'])
+                    from .emails import enviar_email_descarga_cv
+                    enviar_email_descarga_cv(descarga.empresa, descarga.candidato)
+                    logger.info(f'Wompi — descarga {descarga_id} marcada como pagada')
+
+            except DescargaCV.DoesNotExist:
+                logger.error(f'Wompi webhook — descarga no encontrada: {referencia}')
+
+        return HttpResponse(status=200)
+
+    except Exception as e:
+        logger.error(f'Wompi webhook error: {e}')
+        return HttpResponse(status=200)
+
+    
+def error_404(request, exception=None):
+    return render(request, '404.html', status=404)
+
+
+@login_required
+def solicitar_soporte(request):
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+
+    empresa = get_object_or_404(Empresa, usuario=request.user)
+    asunto  = request.POST.get('asunto', '').strip()
+    mensaje = request.POST.get('mensaje', '').strip()
+    archivo = request.FILES.get('archivo')
+
+    if not asunto or not mensaje:
+        return JsonResponse({'ok': False, 'error': 'Faltan campos'}, status=400)
+
+    try:
+        from django.core.mail import EmailMessage
+        cuerpo = f"""Solicitud de soporte desde SeniorTalent
+
+Empresa : {empresa.nombre}
+País    : {empresa.pais.nombre}
+Email   : {empresa.usuario.email}
+Estado  : {empresa.estado}
+
+Asunto: {asunto}
+
+Mensaje:
+{mensaje}
+"""
+        email = EmailMessage(
+            subject=f'[SeniorTalent Soporte] {asunto}',
+            body=cuerpo,
+            from_email='no-reply@smartlogicapp.com',
+            to=['info@smartlogicapp.com'],
+            reply_to=[empresa.usuario.email],
+        )
+        if archivo:
+            email.attach(archivo.name, archivo.read(), archivo.content_type)
+
+        email.send()
+        logger.info(f'Soporte enviado — empresa: {empresa.nombre} — asunto: {asunto}')
+        return JsonResponse({'ok': True})
+
+    except Exception as e:
+        logger.error(f'Error enviando soporte: {e}')
+        return JsonResponse({'ok': False}, status=500)
+    

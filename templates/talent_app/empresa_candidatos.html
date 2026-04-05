@@ -178,6 +178,143 @@
     font-size: 14px;
     margin-bottom: 20px;
   }
+
+  /* BOTÓN SOPORTE */
+  .btn-soporte {
+    padding: 9px 18px;
+    border: 1px solid #5349B7;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #5349B7;
+    background: #EEEDFE;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-soporte:hover { background: #5349B7; color: #fff; }
+
+  /* MODAL SOPORTE */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: #fff;
+    border-radius: 14px;
+    padding: 32px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.18);
+    position: relative;
+  }
+  .modal-box h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .modal-box p.modal-sub {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 20px;
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #aaa;
+    border: none;
+    background: none;
+    line-height: 1;
+  }
+  .modal-close:hover { color: #333; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  .modal-field input,
+  .modal-field textarea,
+  .modal-field select {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border .15s;
+  }
+  .modal-field input:focus,
+  .modal-field textarea:focus { border-color: #5349B7; }
+  .modal-field textarea { resize: vertical; min-height: 110px; }
+  .modal-field .file-hint {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 4px;
+  }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .btn-cancelar {
+    padding: 9px 18px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background: transparent;
+    cursor: pointer;
+    color: #555;
+  }
+  .btn-enviar {
+    padding: 9px 22px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    background: #5349B7;
+    color: #fff;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-enviar:hover { background: #3C3489; }
+  .btn-enviar:disabled { background: #aaa; cursor: not-allowed; }
+  .msg-ok {
+    display: none;
+    background: #E1F5EE;
+    color: #0F6E56;
+    border: 1px solid #9FE1CB;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin-top: 16px;
+    text-align: center;
+  }
+  .msg-err {
+    display: none;
+    background: #FAEEDA;
+    color: #633806;
+    border: 1px solid #FAC775;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin-top: 16px;
+    text-align: center;
+  }
+
 </style>
 {% endblock %}
 
@@ -189,7 +326,10 @@
       <h1>{{ empresa.nombre }}</h1>
       <p>Panel de empresa · {{ empresa.pais.nombre }}</p>
     </div>
-    <a href="{% url 'directorio' %}" class="btn btn-primary">Buscar talento →</a>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button onclick="abrirSoporte()" class="btn-soporte">🎧 Solicitar Soporte</button>
+      <a href="{% url 'directorio' %}" class="btn btn-primary">Buscar talento →</a>
+    </div>
   </div>
 
   <!-- ESTADO EMPRESA -->
@@ -215,8 +355,8 @@
       <div class="stat-label">CVs descargados</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num">${{ descargas|length|add:0|stringformat:"d" }}</div>
-      <div class="stat-label">Total invertido (USD)</div>
+     <div class="stat-num">{{ empresa.pais.moneda }} {{ total_invertido|floatformat:0 }}</div>
+     <div class="stat-label">Total invertido</div>
     </div>
   </div>
 
@@ -237,8 +377,7 @@
                class="candidato-nombre">
               {{ descarga.candidato.nombre }}
             </a>
-            <div class="candidato-cargo">{{ descarga.candidato.cargo_actual }}</div>
-            <div class="candidato-tags">
+              <div class="candidato-cargo" style="font-size:13px;color:#3C3489;font-style:italic;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;line-height:1.5;">{{ descarga.candidato.resumen }}</div>            <div class="candidato-tags">
               <span class="tag tag-exp">{{ descarga.candidato.años_experiencia }} años exp.</span>
               <span class="tag tag-city">📍 {{ descarga.candidato.ciudad }}, {{ descarga.candidato.pais.nombre }}</span>
               <span class="contacto-email">✉ {{ descarga.candidato.usuario.email }}</span>
@@ -261,10 +400,98 @@
       <div class="sin-candidatos">
         <h3>Aún no has descargado ningún CV</h3>
         <p>Busca talento senior en el directorio y descarga los perfiles que te interesen.</p>
-        <a href="{% url 'directorio' %}" class="btn btn-primary">Ir al directorio →</a>
       </div>
     {% endif %}
   </div>
 
 </div>
+
+<!-- MODAL SOPORTE -->
+<div class="modal-overlay" id="modalSoporte">
+  <div class="modal-box">
+    <button class="modal-close" onclick="cerrarSoporte()">✕</button>
+    <h2>🎧 Solicitar Soporte</h2>
+    <p class="modal-sub">Cuéntanos en qué podemos ayudarte. Te respondemos a la brevedad.</p>
+
+    <div class="modal-field">
+      <label>Asunto *</label>
+      <input type="text" id="sop-asunto" placeholder="Ej: Problema al descargar CV" maxlength="100">
+    </div>
+    <div class="modal-field">
+      <label>Mensaje *</label>
+      <textarea id="sop-mensaje" placeholder="Describe detalladamente tu solicitud..."></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Adjunto (opcional)</label>
+      <input type="file" id="sop-archivo" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx">
+      <div class="file-hint">Formatos: PDF, imagen, Word, Excel · Máximo 8 MB</div>
+    </div>
+
+    <div class="msg-ok" id="sop-ok">✓ Mensaje enviado correctamente. Te responderemos pronto.</div>
+    <div class="msg-err" id="sop-err">Ocurrió un error. Intenta de nuevo o escríbenos a info@smartlogicapp.com</div>
+
+    <div class="modal-footer">
+      <button class="btn-cancelar" onclick="cerrarSoporte()">Cancelar</button>
+      <button class="btn-enviar" id="sop-btn" onclick="enviarSoporte()">Enviar mensaje</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function abrirSoporte() {
+    document.getElementById('modalSoporte').classList.add('active');
+  }
+  function cerrarSoporte() {
+    document.getElementById('modalSoporte').classList.remove('active');
+    document.getElementById('sop-ok').style.display = 'none';
+    document.getElementById('sop-err').style.display = 'none';
+    document.getElementById('sop-asunto').value = '';
+    document.getElementById('sop-mensaje').value = '';
+    document.getElementById('sop-archivo').value = '';
+    document.getElementById('sop-btn').disabled = false;
+    document.getElementById('sop-btn').textContent = 'Enviar mensaje';
+  }
+  async function enviarSoporte() {
+    const asunto  = document.getElementById('sop-asunto').value.trim();
+    const mensaje = document.getElementById('sop-mensaje').value.trim();
+    const archivo = document.getElementById('sop-archivo').files[0];
+    const btn     = document.getElementById('sop-btn');
+
+    if (!asunto || !mensaje) { alert('Por favor completa asunto y mensaje.'); return; }
+    if (archivo && archivo.size > 8 * 1024 * 1024) { alert('El archivo supera el límite de 8 MB.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    document.getElementById('sop-ok').style.display = 'none';
+    document.getElementById('sop-err').style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('asunto', asunto);
+    fd.append('mensaje', mensaje);
+    if (archivo) fd.append('archivo', archivo);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    try {
+      const resp = await fetch('{% url "solicitar_soporte" %}', { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (data.ok) {
+        document.getElementById('sop-ok').style.display = 'block';
+        btn.textContent = '✓ Enviado';
+      } else {
+        document.getElementById('sop-err').style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Enviar mensaje';
+      }
+    } catch {
+      document.getElementById('sop-err').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Enviar mensaje';
+    }
+  }
+  // Cerrar modal al click fuera
+  document.getElementById('modalSoporte').addEventListener('click', function(e) {
+    if (e.target === this) cerrarSoporte();
+  });
+</script>
+
 {% endblock %}

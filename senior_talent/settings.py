@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'anymail',
     'django_celery_results',
     'talent_app',
+    'django.contrib.postgres',
 ]
 
 MIDDLEWARE = [
@@ -120,5 +121,78 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Bogota'
 
-# Agregar a INSTALLED_APPS
-# 'django_celery_results',
+
+# Páginas de error personalizadas
+handler403 = 'talent_app.views.error_403'
+handler404 = 'talent_app.views.error_404'
+# Crear carpeta de logs automáticamente si no existe
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+# LOGGING
+import os
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} | {levelname} | {module} | {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{asctime} | {levelname} | {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'archivo_general': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'general.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'archivo_errores': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'errores.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'consola': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['archivo_general', 'archivo_errores'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['archivo_errores'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'talent_app': {
+            'handlers': ['archivo_general', 'archivo_errores', 'consola'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# Sesión — 2 horas
+SESSION_COOKIE_AGE = 60 * 60 * 2
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'None'

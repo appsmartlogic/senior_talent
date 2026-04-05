@@ -95,7 +95,7 @@
     width: 100%;
     padding: 8px;
     background: transparent;
-    color: #888;
+    color: #1a1a1a;
     border: 1px solid #ddd;
     border-radius: 8px;
     font-size: 13px;
@@ -219,6 +219,36 @@
     .candidato-nombre { font-size: 14px; }
     .search-row button { padding: 10px 12px; font-size: 13px; }
   }
+
+  /* BLOQUEO NOMBRE */
+  .nombre-bloqueado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #aaa;
+    font-style: italic;
+    font-weight: 500;
+  }
+  .lock-icon { font-size: 12px; }
+  .habilidades-bloqueadas {
+    filter: blur(3px);
+    user-select: none;
+    pointer-events: none;
+    color: #bbb;
+  }
+  .badge-registrate {
+    display: inline-block;
+    font-size: 11px;
+    background: #EEEDFE;
+    color: #5349B7;
+    border: 1px solid #AFA9EC;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-weight: 600;
+    margin-left: 4px;
+    white-space: nowrap;
+  }
+
 </style>
 {% endblock %}
 
@@ -227,7 +257,7 @@
 <div class="directorio-header">
   <div class="container">
     <h1>Directorio de talento senior</h1>
-    <form class="search-row" method="get" action="{% url 'directorio' %}">
+   <form class="search-row" method="get" action="{% url 'directorio' %}">
       <input type="text" name="q" value="{{ filtros.q }}" placeholder="Cargo, industria o habilidad...">
       {% if filtros.pais %}<input type="hidden" name="pais" value="{{ filtros.pais }}">{% endif %}
       {% if filtros.sector %}<input type="hidden" name="sector" value="{{ filtros.sector }}">{% endif %}
@@ -236,6 +266,10 @@
       {% if filtros.nivel_idioma %}<input type="hidden" name="nivel_idioma" value="{{ filtros.nivel_idioma }}">{% endif %}
       <button type="submit">Buscar</button>
     </form>
+      <div style="font-size:11px;color:#A32D2D;margin-top:6px;line-height:1.8;">
+      * Si usas <strong>espacio</strong> entre palabras, la búsqueda es precisa y el profesional debe cumplir <strong>todos</strong> los términos. Ej: <strong>metodologias agiles bogota</strong><br>
+      * Si usas <strong>coma (,)</strong> entre términos, se busca cualquiera de las alternativas y el profesional puede cumplir <strong>uno o varios</strong>. Ej: <strong>tecnologia, finanzas, marketing</strong>
+    </div>
   </div>
 </div>
 
@@ -272,6 +306,7 @@
       <h3>Experiencia mínima</h3>
       <select name="exp_min" class="filter-select">
         <option value="">Cualquiera</option>
+        <option value="5" {% if filtros.exp_min  == '5'  %}selected{% endif %}>5+ años</option>
         <option value="10" {% if filtros.exp_min == '10' %}selected{% endif %}>10+ años</option>
         <option value="15" {% if filtros.exp_min == '15' %}selected{% endif %}>15+ años</option>
         <option value="20" {% if filtros.exp_min == '20' %}selected{% endif %}>20+ años</option>
@@ -283,11 +318,17 @@
       <h3>Idioma</h3>
       <select name="idioma" class="filter-select">
         <option value="">Cualquiera</option>
-        <option value="Inglés" {% if filtros.idioma == 'Inglés' %}selected{% endif %}>Inglés</option>
         <option value="Español" {% if filtros.idioma == 'Español' %}selected{% endif %}>Español</option>
+        <option value="Inglés" {% if filtros.idioma == 'Inglés' %}selected{% endif %}>Inglés</option>
         <option value="Portugués" {% if filtros.idioma == 'Portugués' %}selected{% endif %}>Portugués</option>
         <option value="Francés" {% if filtros.idioma == 'Francés' %}selected{% endif %}>Francés</option>
         <option value="Alemán" {% if filtros.idioma == 'Alemán' %}selected{% endif %}>Alemán</option>
+        <option value="Italiano" {% if filtros.idioma == 'Italiano' %}selected{% endif %}>Italiano</option>
+        <option value="Mandarín" {% if filtros.idioma == 'Mandarín' %}selected{% endif %}>Mandarín</option>
+        <option value="Japonés" {% if filtros.idioma == 'Japonés' %}selected{% endif %}>Japonés</option>
+        <option value="Árabe" {% if filtros.idioma == 'Árabe' %}selected{% endif %}>Árabe</option>
+        <option value="Coreano" {% if filtros.idioma == 'Coreano' %}selected{% endif %}>Coreano</option>
+        <option value="Neerlandés" {% if filtros.idioma == 'Neerlandés' %}selected{% endif %}>Neerlandés</option>
       </select>
     </div>
 
@@ -320,16 +361,36 @@
   <div class="results">
     <div class="results-header">
       <span class="results-count">{{ candidatos|length }} profesional{{ candidatos|length|pluralize:"es" }} encontrado{{ candidatos|length|pluralize:"s" }}</span>
+      {% if not es_empresa_activa %}
+        <span style="font-size:12px;color:#888;font-style:italic;">
+          ¿Es empresa? <a  style="color:#5349B7;font-weight:600;text-decoration:none;">Regístrese para ver perfiles completos</a>
+        </span>
+      {% endif %}
     </div>
 
     {% for candidato in candidatos %}
-    <a href="{% url 'perfil_candidato' candidato.pk %}" class="candidato-card">
+    <!--  -->
+      {% if es_empresa_activa %}
+        <a href="{% url 'perfil_candidato' candidato.pk %}" class="candidato-card">
+      {% else %}
+        <div class="candidato-card" style="cursor:default;">
+      {% endif %}      
       <div class="avatar" style="background:#EEEDFE;color:#3C3489;">
         {{ candidato.iniciales }}
       </div>
       <div class="candidato-info">
-        <div class="candidato-nombre">{{ candidato.nombre }}</div>
-        <div class="candidato-cargo">{{ candidato.cargo_actual }}</div>
+
+        {% if es_empresa_activa %}
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+            <div style="flex:1;min-width:0;">
+              <div class="candidato-nombre">{{ candidato.nombre }}</div>
+              <div style="font-size:13px;color:#555;font-style:italic;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;line-height:1.5;margin-top:4px;">{{ candidato.resumen }}</div>
+            </div>
+            <span class="btn-ver" style="flex-shrink:0;">Ver perfil →</span>
+          </div>
+        {% else %}
+        <div class="candidato-cargo" style="font-size:13px;color:#3C3489;font-style:italic;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;line-height:1.5;">{{ candidato.resumen }}</div>        {% endif %}
+
         <div class="candidato-tags">
           <span class="tag tag-exp">{{ candidato.años_experiencia }} años exp.</span>
           {% for sector in candidato.sectores.all|slice:":2" %}
@@ -339,17 +400,22 @@
           {% if candidato.disponibilidad == 'inmediata' %}
             <span class="tag tag-open">Disponible ahora</span>
           {% endif %}
-          {% for idioma in candidato.idiomas.all|slice:":1" %}
+          {% for idioma in candidato.idiomas.all %}
             <span class="tag tag-city">{{ idioma.idioma }} · {{ idioma.get_nivel_display }}</span>
           {% endfor %}
         </div>
         <div class="candidato-footer">
-          <span class="candidato-habilidades">{{ candidato.habilidades|slice:":3"|join:", " }}</span>
-          <span class="btn-ver">Ver perfil →</span>
+          <div style="width:100%;">
+            <div style="font-size:10px;font-weight:700;color:#3C3489;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Habilidades</div>
+            <span class="candidato-habilidades" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;color:#fff;font-weight:500;background:#3C3489;padding:6px 10px;border-radius:8px;font-size:12px;">{{ candidato.habilidades|join:", " }}</span>
+          </div>
+        
         </div>
+
       </div>
-    </a>
+      {% if es_empresa_activa %}</a>{% else %}</div>{% endif %}
     {% empty %}
+
     <div class="sin-resultados">
       <h3>No se encontraron profesionales</h3>
       <p>Intenta con otros filtros o amplía tu búsqueda</p>
