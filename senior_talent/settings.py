@@ -108,6 +108,7 @@ SERVER_EMAIL       = os.getenv('EMAIL_FROM', 'noreply@smartlogicapp.com')
 
 OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://localhost:11434')
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.1:8b')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
 IPAPI_URL = 'https://ipapi.co/{ip}/json/'
 PAIS_DEFAULT = 'CO'
