@@ -83,7 +83,6 @@ Return exactly this JSON structure:
     if not api_key:
         raise ValueError('GEMINI_API_KEY no configurada.')
 
-    url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}'
     payload = {
         'contents': [{'parts': [{'text': prompt}]}],
         'generationConfig': {
@@ -92,23 +91,39 @@ Return exactly this JSON structure:
         }
     }
 
-    try:
-        resp = requests.post(url, json=payload, timeout=30)
-        resp.raise_for_status()
-        resultado = resp.json()
-        respuesta_raw = (
-            resultado
-            .get('candidates', [{}])[0]
-            .get('content', {})
-            .get('parts', [{}])[0]
-            .get('text', '{}')
-        )
-        datos = _parsear_json_seguro(respuesta_raw)
-        datos_limpios = _limpiar_datos(datos)
-        return _validar_experiencia(datos_limpios)
-    except requests.RequestException as e:
-        raise ValueError(f'Error conectando con Gemini: {e}')
+    MODELOS_GEMINI = [
+        'gemini-flash-latest',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+    ]
 
+    resp = None
+    ultimo_error = None
+
+    for modelo in MODELOS_GEMINI:
+        try:
+            url = f'https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}'
+            resp = requests.post(url, json=payload, timeout=30)
+            resp.raise_for_status()
+            break
+        except requests.RequestException as e:
+            ultimo_error = e
+            continue
+
+    if resp is None or not resp.ok:
+        raise ValueError('Error conectando con Gemini. Todos los modelos fallaron.')
+
+    resultado = resp.json()
+    respuesta_raw = (
+        resultado
+        .get('candidates', [{}])[0]
+        .get('content', {})
+        .get('parts', [{}])[0]
+        .get('text', '{}')
+    )
+    datos = _parsear_json_seguro(respuesta_raw)
+    datos_limpios = _limpiar_datos(datos)
+    return _validar_experiencia(datos_limpios)
 
 def _parsear_json_seguro(texto: str) -> dict:
     """Intenta parsear JSON aunque el modelo agregue texto extra."""
