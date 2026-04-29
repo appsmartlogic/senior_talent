@@ -103,11 +103,9 @@ def directorio(request):
         frases = [f.strip() for f in q.split(',') if f.strip()]
         query_total = None
         for frase in frases:
-            palabras = [p.strip() for p in frase.split() if p.strip()]
-            if not palabras:
+            if not frase:
                 continue
-            query_frase = reduce(operator.and_, [filtro_termino(p) for p in palabras])
-            query_total = query_frase if query_total is None else (query_total | query_frase)
+            query_total = filtro_termino(frase) if query_total is None else (query_total | filtro_termino(frase))
 
         if query_total is not None:
             candidatos = candidatos.filter(query_total).distinct()
@@ -140,12 +138,6 @@ def perfil_candidato(request, pk):
             estado=DescargaCV.ESTADO_PAGADO
         ).exists()
         empresa_activa = empresa.activa
-        if empresa_activa and ya_pago:
-            try:
-                from .emails import enviar_email_descarga_cv
-                enviar_email_descarga_cv(empresa, candidato)
-            except Exception as e:
-                logger.error(f'Error enviando email ver perfil: {e}')
     return render(request, 'talent_app/perfil_candidato.html', {
         'candidato': candidato,
         'ya_pago': ya_pago,
@@ -169,7 +161,17 @@ def registro_candidato(request):
             messages.error(request, 'Ya existe una cuenta con ese correo.')
             return render(request, 'talent_app/registro_candidato.html', {'paises': paises})
 
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            messages.error(request, ' '.join(e.messages))
+            return render(request, 'talent_app/registro_candidato.html', {'paises': paises})
+
         usuario = Usuario.objects.create_user(email=email, password=password, tipo=Usuario.TIPO_CANDIDATO)
+
         Candidato.objects.create(
             usuario=usuario,
             nombre=nombre,
@@ -203,7 +205,16 @@ def registro_empresa(request):
             messages.error(request, 'Ya existe una cuenta con ese correo.')
             return render(request, 'talent_app/registro_empresa.html', {'paises': paises})
 
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            messages.error(request, ' '.join(e.messages))
+            return render(request, 'talent_app/registro_empresa.html', {'paises': paises})
+
         usuario = Usuario.objects.create_user(email=email, password=password, tipo=Usuario.TIPO_EMPRESA)
+        
         Empresa.objects.create(
             usuario=usuario,
             nombre=nombre,
@@ -224,12 +235,17 @@ def login_view(request):
         usuario  = authenticate(request, email=email, password=password)
         if usuario:
             login(request, usuario)
-            next_url = request.GET.get('next', 'dashboard')
-            return redirect(next_url)
+            from django.utils.http import url_has_allowed_host_and_scheme
+
+            next_url = request.GET.get('next', '')
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+            return redirect('dashboard')
+
         messages.error(request, 'Correo o contraseña incorrectos.')
     return render(request, 'talent_app/login.html')
 
-
+@require_POST
 def logout_view(request):
     logout(request)
     return redirect('home')
@@ -358,6 +374,13 @@ def subir_cv_ia(request):
     if not archivo.name.lower().endswith('.pdf'):
         return JsonResponse({'error': 'Solo se aceptan archivos PDF'}, status=400)
 
+    # Verificar magic bytes del PDF (%PDF-)
+    encabezado = archivo.read(5)
+    archivo.seek(0)
+    if encabezado != b'%PDF-':
+        return JsonResponse({'error': 'El archivo no es un PDF válido'}, status=400)
+
+
     if archivo.size > 10 * 1024 * 1024:
         return JsonResponse({'error': 'El archivo supera el límite de 10 MB'}, status=400)
 
@@ -375,9 +398,11 @@ def subir_cv_ia(request):
 
 @login_required
 def estado_tarea(request, task_id):
-    """
-    Polling — el frontend consulta cada 3 segundos el estado de la tarea.
-    """
+    # Validar que el task_id sea un UUID válido para evitar sondeo de IDs arbitrarios
+    import re
+    if not re.match(r'^[0-9a-f-]{36}$', task_id):
+        return JsonResponse({'error': 'ID inválido'}, status=400)
+
     from celery.result import AsyncResult
     result = AsyncResult(task_id)
 
@@ -453,7 +478,7 @@ def stripe_webhook(request):
                 import pytz
                 zona = pytz.timezone(descarga.empresa.pais.zona_horaria)
                 descarga.pagado_en = timezone.now().astimezone(zona)
-                descarga.monto_usd = transaction.get('amount_in_cents', 0) / 100
+                descarga.monto_usd = (session.get('amount_total') or 0) / 100
                 descarga.save(update_fields=['estado', 'stripe_payment_id', 'pagado_en', 'monto_usd'])
                  # Enviar emails a candidato y empresa
                 from .emails import enviar_email_descarga_cv
@@ -492,8 +517,20 @@ def descargar_pdf_cv(request, candidato_id):
     pdf_file = HTML(string=html_string).write_pdf()
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    nombre_archivo = f"CV_{candidato.nombre.replace(' ', '_')}.pdf"
+    import unicodedata, re
+
+    def sanitizar_nombre_archivo(nombre):
+        # Quitar acentos
+        nfkd = unicodedata.normalize('NFKD', nombre)
+        sin_acentos = ''.join(c for c in nfkd if not unicodedata.combining(c))
+        # Solo letras, números, guion, guion_bajo
+        limpio = re.sub(r'[^\w\s-]', '', sin_acentos)
+        return limpio.strip().replace(' ', '_')[:80]
+
+    nombre_archivo = f"CV_{sanitizar_nombre_archivo(candidato.nombre)}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+
+
     return response
 
 
@@ -505,6 +542,12 @@ def iniciar_pago(request, candidato_id):
     empresa   = get_object_or_404(Empresa, usuario=request.user)
     candidato = get_object_or_404(Candidato, pk=candidato_id, estado=Candidato.ESTADO_APROBADO)
 
+    # Bloquear si la empresa no está activa
+    if not empresa.activa:
+        messages.error(request, 'Tu cuenta de empresa debe estar verificada para descargar CVs.')
+        logger.warning(f'Intento de pago con empresa no activa: {empresa.nombre} [{empresa.estado}]')
+        return redirect('empresa_candidatos')
+    
     logger.info(f'Empresa {empresa.nombre} intenta descargar CV de {candidato.nombre}')
 
     ya_pago = DescargaCV.objects.filter(
@@ -589,7 +632,6 @@ def iniciar_pago(request, candidato_id):
             )
 
             logger.info(f'Wompi — ref: {ref} | monto: {pasarela_config.precio_cv} | moneda: {pasarela_config.moneda}')
-            logger.info(f'Wompi — integrity_string: {ref}{pasarela_config.precio_cv}{pasarela_config.moneda}{pasarela_config.webhook_secret}')
 
             logger.info(f'Checkout Wompi iniciado — empresa: {empresa.nombre} — ref: {ref}')
             return redirect(wompi_url)
@@ -633,8 +675,28 @@ def wompi_webhook(request):
         payload = json.loads(request.body)
         logger.info(f'Wompi webhook recibido: {json.dumps(payload)}')
 
+        # ── Verificar firma Wompi ─────────────────────────────────────
+        import hashlib
+        evento_nombre  = payload.get('event', '')
+        timestamp      = payload.get('timestamp', '')
+        checksum       = payload.get('signature', {}).get('checksum', '')
+        try:
+            from .models import PasarelaPago
+            pasarela_co    = PasarelaPago.objects.get(pais__codigo='CO', activa=True)
+            webhook_secret = pasarela_co.webhook_secret
+            cadena         = f"{evento_nombre}{timestamp}{webhook_secret}"
+            firma_esperada = hashlib.sha256(cadena.encode('utf-8')).hexdigest()
+            if not checksum or firma_esperada != checksum:
+                logger.warning(f'Wompi webhook — firma inválida. Recibido: {checksum}')
+                return HttpResponse(status=401)
+        except PasarelaPago.DoesNotExist:
+            logger.error('Wompi webhook — pasarela CO no encontrada')
+            return HttpResponse(status=400)
+        # ─────────────────────────────────────────────────────────────
+
         evento = payload.get('event')
         if evento != 'transaction.updated':
+
             return HttpResponse(status=200)
 
         data        = payload.get('data', {})
