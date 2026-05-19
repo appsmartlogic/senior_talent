@@ -258,8 +258,8 @@
   <div class="container">
     <h1>Directorio de talento senior</h1>
    <form class="search-row" method="get" action="{% url 'directorio' %}">
-      <input type="text" name="q" value="{{ filtros.q }}" placeholder="Cargo, industria o habilidad...">
-      {% if filtros.pais %}<input type="hidden" name="pais" value="{{ filtros.pais }}">{% endif %}
+     <input type="text" name="q" value="{{ filtros.q }}" placeholder="Ej: finanzas, marketing, tecnología"> 
+     {% if filtros.pais %}<input type="hidden" name="pais" value="{{ filtros.pais }}">{% endif %}
       {% if filtros.sector %}<input type="hidden" name="sector" value="{{ filtros.sector }}">{% endif %}
       {% if filtros.exp_min %}<input type="hidden" name="exp_min" value="{{ filtros.exp_min }}">{% endif %}
       {% if filtros.idioma %}<input type="hidden" name="idioma" value="{{ filtros.idioma }}">{% endif %}
@@ -267,8 +267,7 @@
       <button type="submit">Buscar</button>
     </form>
       <div style="font-size:11px;color:#A32D2D;margin-top:6px;line-height:1.8;">
-      * Si usas <strong>espacio</strong> entre palabras, la búsqueda es precisa y el profesional debe cumplir <strong>todos</strong> los términos. Ej: <strong>metodologias agiles bogota</strong><br>
-      * Si usas <strong>coma (,)</strong> entre términos, se busca cualquiera de las alternativas y el profesional puede cumplir <strong>uno o varios</strong>. Ej: <strong>tecnologia, finanzas, marketing</strong>
+      * Separa términos con <strong>coma (,)</strong> para buscar varias alternativas. Ej: <strong>tecnologia, finanzas, marketing</strong>
     </div>
   </div>
 </div>

@@ -180,9 +180,40 @@ def registro_candidato(request):
             cargo_actual='',
             años_experiencia=0,
         )
-        login(request, usuario)
+        login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, '¡Cuenta creada! Completa tu perfil y sube tu CV.')
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            send_mail(
+                subject=f'🆕 Nuevo candidato registrado: {nombre}',
+                message='',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=['juansalasa@gmail.com'],
+                html_message=f"""
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;background:#f9f9f9;border-radius:8px;border:1px solid #e8e8e8;">
+                    <h2 style="color:#0A0A2E;margin-bottom:4px;">🆕 Nuevo candidato registrado</h2>
+                    <p style="color:#888;font-size:13px;margin-top:0;">SeniorTalent · {timezone.now().strftime('%d/%m/%Y %H:%M')}</p>
+                    <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+                        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Nombre</td><td style="padding:8px 0;font-weight:bold;font-size:14px;">{nombre}</td></tr>
+                        <tr style="background:#f3f4f6;"><td style="padding:8px;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px;font-size:14px;">{email}</td></tr>
+                        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Ciudad</td><td style="padding:8px 0;font-size:14px;">{ciudad}</td></tr>
+                    </table>
+                    <div style="text-align:center;margin-top:28px;">
+                        <a href="https://talent.smartlogicapp.com/admin/talent_app/candidato/"
+                        style="background:#0A0A2E;color:#FFD700;padding:12px 28px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:14px;">
+                            Ver en el Admin →
+                        </a>
+                    </div>
+                </div>
+                """,
+                fail_silently=True,
+            )
+        except Exception:
+            pass
         return redirect('editar_perfil')
+
+
 
     return render(request, 'talent_app/registro_candidato.html', {'paises': paises})
 
@@ -221,9 +252,39 @@ def registro_empresa(request):
             pais_id=pais_id,
             num_tributario=num_tributario,
         )
-        login(request, usuario)
+        login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, '¡Empresa registrada! Tu cuenta será verificada pronto.')
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            send_mail(
+                subject=f'🏢 Nueva empresa registrada: {nombre}',
+                message='',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=['juansalasa@gmail.com'],
+                html_message=f"""
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;background:#f9f9f9;border-radius:8px;border:1px solid #e8e8e8;">
+                    <h2 style="color:#0A0A2E;margin-bottom:4px;">🏢 Nueva empresa registrada</h2>
+                    <p style="color:#888;font-size:13px;margin-top:0;">SeniorTalent · {timezone.now().strftime('%d/%m/%Y %H:%M')}</p>
+                    <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+                        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:140px;">Empresa</td><td style="padding:8px 0;font-weight:bold;font-size:14px;">{nombre}</td></tr>
+                        <tr style="background:#f3f4f6;"><td style="padding:8px;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px;font-size:14px;">{email}</td></tr>
+                        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">NIT / Tributario</td><td style="padding:8px 0;font-size:14px;">{num_tributario}</td></tr>
+                    </table>
+                    <div style="text-align:center;margin-top:28px;">
+                        <a href="https://talent.smartlogicapp.com/admin/talent_app/empresa/"
+                        style="background:#0A0A2E;color:#FFD700;padding:12px 28px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:14px;">
+                            Ver en el Admin →
+                        </a>
+                    </div>
+                </div>
+                """,
+                fail_silently=True,
+            )
+        except Exception:
+            pass
         return redirect('empresa_candidatos')
+
 
     return render(request, 'talent_app/registro_empresa.html', {'paises': paises})
 
@@ -245,7 +306,6 @@ def login_view(request):
         messages.error(request, 'Correo o contraseña incorrectos.')
     return render(request, 'talent_app/login.html')
 
-@require_POST
 def logout_view(request):
     logout(request)
     return redirect('home')

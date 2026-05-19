@@ -7,13 +7,26 @@ from .models import (
 )
 from django.db import models as db_models
 from django.forms import TextInput
+from django.core.mail import send_mail
+from django.contrib import messages
+from django.conf import settings
+import subprocess
+import psutil
+import redis
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.http import HttpResponse
+from django.urls import path
+from django.template.response import TemplateResponse
+from django.utils.html import format_html
 
 @admin.register(Usuario)
 class UsuarioAdmin(BaseUserAdmin):
-    list_display   = ('email', 'tipo', 'is_active', 'date_joined')
+    list_display   = ('email', 'tipo', 'is_active', 'date_joined', 'tiene_perfil')
     list_filter    = ('tipo', 'is_active')
     search_fields  = ('email',)
     ordering       = ('-date_joined',)
+    actions        = ['enviar_correo_seguimiento']
     fieldsets = (
         (None,          {'fields': ('email', 'password')}),
         ('Información', {'fields': ('tipo',)}),
@@ -23,6 +36,95 @@ class UsuarioAdmin(BaseUserAdmin):
         (None, {'classes': ('wide',), 'fields': ('email', 'tipo', 'password1', 'password2')}),
     )
 
+    @admin.display(description='Perfil completo')
+    def tiene_perfil(self, obj):
+        tiene = hasattr(obj, 'candidato') or hasattr(obj, 'empresa')
+        if tiene:
+            return format_html('<span style="color:#22c55e;font-size:16px;">✔</span>')
+        return format_html(
+            '<span style="color:#ef4444;font-size:16px;cursor:help;" '
+            'title="Sin perfil — Selecciona este usuario y en Acciones ejecuta: Enviar correo de seguimiento">✘</span>'
+        )
+
+
+    @admin.action(description='📧 Enviar correo de seguimiento (sin perfil)')
+    def enviar_correo_seguimiento(self, request, queryset):
+        enviados = 0
+        omitidos = 0
+        for usuario in queryset:
+            tiene_candidato = hasattr(usuario, 'candidato')
+            tiene_empresa   = hasattr(usuario, 'empresa')
+            if tiene_candidato or tiene_empresa:
+                omitidos += 1
+                continue
+            try:
+                send_mail(
+                    subject='Completa tu perfil en SeniorTalent',
+                    message='',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[usuario.email],
+                    html_message=f"""
+                        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:40px 32px;background:#ffffff;border-radius:8px;border:1px solid #e8e8e8;">
+                            
+                            <div style="text-align:center;margin-bottom:32px;">
+                                <h1 style="color:#0A0A2E;font-size:22px;margin:0;">SeniorTalent</h1>
+                                <p style="color:#888;font-size:13px;margin:4px 0 0;">talent.smartlogicapp.com</p>
+                            </div>
+
+                            <p style="color:#333;font-size:15px;line-height:1.6;">Hola,</p>
+
+                            <p style="color:#333;font-size:15px;line-height:1.6;">
+                                Gracias por registrarte en <strong>SeniorTalent</strong>, la plataforma diseñada para conectar 
+                                profesionales con experiencia con empresas que valoran el talento senior.
+                            </p>
+
+                            <p style="color:#333;font-size:15px;line-height:1.6;">
+                                Notamos que tu cuenta fue creada exitosamente, pero tu perfil profesional aún no está completo. 
+                                Sin él, las empresas no pueden encontrarte ni contactarte.
+                            </p>
+
+                            <div style="background:#f7f7f7;border-left:4px solid #FFD700;padding:16px 20px;margin:24px 0;border-radius:4px;">
+                                <p style="margin:0 0 8px;color:#0A0A2E;font-weight:bold;font-size:14px;">Completar tu perfil te permite:</p>
+                                <ul style="margin:0;padding-left:18px;color:#444;font-size:14px;line-height:1.8;">
+                                    <li>Ser visible ante empresas que buscan tu experiencia</li>
+                                    <li>Subir tu hoja de vida para extracción automática con IA</li>
+                                    <li>Recibir oportunidades laborales alineadas a tu perfil</li>
+                                </ul>
+                            </div>
+
+                            <div style="text-align:center;margin:32px 0;">
+                                <a href="https://talent.smartlogicapp.com/dashboard/perfil/"
+                                style="background:#FFD700;color:#0A0A2E;padding:14px 32px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:15px;display:inline-block;">
+                                    Completar mi perfil ahora →
+                                </a>
+                            </div>
+
+                            <p style="color:#333;font-size:15px;line-height:1.6;">
+                                Si tienes alguna duda, responde este correo y con gusto te ayudamos.
+                            </p>
+
+                            <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
+
+                            <p style="color:#333;font-size:14px;margin:0;">Atentamente,</p>
+                            <p style="color:#0A0A2E;font-weight:bold;font-size:14px;margin:4px 0 0;">Equipo SeniorTalent</p>
+                            <p style="margin:4px 0 0;"><a href="https://talent.smartlogicapp.com" style="color:#888;font-size:13px;">talent.smartlogicapp.com</a></p>
+
+                            <p style="color:#bbb;font-size:11px;margin-top:24px;text-align:center;">
+                                Si no creaste esta cuenta, ignora este mensaje.
+                            </p>
+                        </div>
+                        """,
+                    fail_silently=False,
+                )
+                enviados += 1
+            except Exception as e:
+                self.message_user(request, f'Error enviando a {usuario.email}: {e}', level=messages.ERROR)
+
+        self.message_user(
+            request,
+            f'✅ {enviados} correo(s) enviado(s). {omitidos} omitido(s) (ya tienen perfil).',
+            level=messages.SUCCESS
+        )
 
 class ExperienciaInline(admin.TabularInline):
     model = ExperienciaLaboral
@@ -127,3 +229,249 @@ class PasarelaPagoAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+
+# ─── PANEL DE DIAGNÓSTICO ────────────────────────────────────────────────────
+
+class DiagnosticoAdmin(admin.ModelAdmin):
+    pass
+
+from django.contrib.admin import AdminSite
+
+import socket
+
+def _check_service(nombre):
+    """Verifica por puerto en vez de systemctl"""
+    puertos = {
+        'gunicorn-seniortalent': 8001,
+        'senior_talent_celery': None,
+    }
+    puerto = puertos.get(nombre)
+    if puerto:
+        try:
+            s = socket.create_connection(('127.0.0.1', puerto), timeout=2)
+            s.close()
+            return True
+        except Exception:
+            return False
+    # Para Celery verificamos por proceso
+    try:
+        r = subprocess.run(
+            ['/usr/bin/pgrep', '-f', 'celery'],
+            capture_output=True, timeout=3
+        )
+        return r.returncode == 0
+
+    except Exception:
+        return False
+    
+def _check_redis():
+    try:
+        r = redis.Redis(host='127.0.0.1', port=6379, db=2, socket_timeout=3)
+        r.ping()
+        return True
+    except Exception:
+        return False
+
+def _check_postgres():
+    from django.db import connection
+    try:
+        connection.ensure_connection()
+        return True
+    except Exception:
+        return False
+
+def _get_journal_errors(servicio, lineas=8):
+    try:
+        r = subprocess.run(
+            ['journalctl', '-u', servicio, '-n', str(lineas),
+             '--no-pager', '--output=short'],
+            capture_output=True, text=True, timeout=5
+        )
+        return r.stdout.strip()
+    except Exception:
+        return 'No disponible'
+
+def _semaforo(ok, texto_ok, texto_fail):
+    if ok:
+        return f'<span style="color:#22c55e;font-weight:bold;">● {texto_ok}</span>'
+    return f'<span style="color:#ef4444;font-weight:bold;">● {texto_fail}</span>'
+
+
+def diagnostico_view(request):
+    # Servicios
+    gunicorn_ok  = _check_service('gunicorn-seniortalent')
+    celery_ok    = _check_service('senior_talent_celery')
+    redis_ok     = _check_redis()
+    postgres_ok  = _check_postgres()
+
+    # Sistema
+    disco        = psutil.disk_usage('/')
+    ram          = psutil.virtual_memory()
+    cpu          = psutil.cpu_percent(interval=1)
+
+    # Métricas app
+    from talent_app.models import Usuario, Candidato
+    from django.utils import timezone
+    hoy          = timezone.now().date()
+    usuarios_hoy = Usuario.objects.filter(date_joined__date=hoy).count()
+    total_users  = Usuario.objects.count()
+    sin_perfil   = Usuario.objects.filter(candidato__isnull=True, empresa__isnull=True).count()
+    total_cands  = Candidato.objects.count()
+    pendientes   = Candidato.objects.filter(estado='pendiente').count()
+    aprobados    = Candidato.objects.filter(estado='aprobado').count()
+
+    # Logs recientes
+    logs_gunicorn = _get_journal_errors('gunicorn-seniortalent')
+    logs_celery   = _get_journal_errors('senior_talent_celery')
+
+    # Tareas Celery fallidas
+    try:
+        from django_celery_results.models import TaskResult
+        tareas_fallidas = TaskResult.objects.filter(
+            status='FAILURE'
+        ).order_by('-date_done')[:5]
+    except Exception:
+        tareas_fallidas = []
+
+    def badge(valor, color):
+        return f'<span style="background:{color};color:#fff;padding:3px 10px;border-radius:12px;font-size:13px;font-weight:bold;">{valor}</span>'
+
+    disco_pct   = disco.percent
+    disco_color = '#22c55e' if disco_pct < 70 else ('#f59e0b' if disco_pct < 90 else '#ef4444')
+    ram_pct     = ram.percent
+    ram_color   = '#22c55e' if ram_pct < 70 else ('#f59e0b' if ram_pct < 90 else '#ef4444')
+    cpu_color   = '#22c55e' if cpu < 70 else ('#f59e0b' if cpu < 90 else '#ef4444')
+
+    html = f"""
+    <!DOCTYPE html><html><head>
+    <meta charset="utf-8">
+    <title>Diagnóstico — SeniorTalent</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 24px; color: #1f2937; }}
+        h1 {{ color: #0A0A2E; margin-bottom: 4px; }}
+        .sub {{ color: #6b7280; font-size: 13px; margin-bottom: 28px; }}
+        .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin-bottom: 28px; }}
+        .card {{ background: #fff; border-radius: 10px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }}
+        .card h3 {{ margin: 0 0 12px; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }}
+        .card .val {{ font-size: 28px; font-weight: bold; color: #0A0A2E; }}
+        .card .sub2 {{ font-size: 12px; color: #9ca3af; margin-top: 4px; }}
+        .section {{ background: #fff; border-radius: 10px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 20px; }}
+        .section h2 {{ margin: 0 0 16px; font-size: 16px; color: #0A0A2E; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }}
+        .svc-row {{ display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }}
+        .svc-row:last-child {{ border-bottom: none; }}
+        .svc-name {{ font-size: 14px; font-weight: bold; }}
+        pre {{ background: #1e1e2e; color: #cdd6f4; padding: 16px; border-radius: 8px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; margin: 0; }}
+        .bar-wrap {{ background: #e5e7eb; border-radius: 99px; height: 10px; margin-top: 8px; }}
+        .bar {{ height: 10px; border-radius: 99px; }}
+        .back-btn {{ display:inline-block; margin-bottom:20px; background:#0A0A2E; color:#fff; padding:8px 18px; border-radius:6px; text-decoration:none; font-size:13px; }}
+    </style>
+    </head><body>
+    <a href="/admin/" class="back-btn">← Volver al admin</a>
+    <h1>🔧 Diagnóstico del Sistema</h1>
+    <p class="sub">SeniorTalent · talent.smartlogicapp.com · {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
+
+    <!-- SERVICIOS -->
+    <div class="section">
+        <h2>⚙️ Estado de Servicios</h2>
+        <div class="svc-row">
+            <span class="svc-name">Gunicorn (Django)</span>
+            {_semaforo(gunicorn_ok, 'Activo', 'Caído')}
+        </div>
+        <div class="svc-row">
+            <span class="svc-name">Celery Worker</span>
+            {_semaforo(celery_ok, 'Activo', 'Caído')}
+        </div>
+        <div class="svc-row">
+            <span class="svc-name">Redis</span>
+            {_semaforo(redis_ok, 'Conectado', 'Sin conexión')}
+        </div>
+        <div class="svc-row">
+            <span class="svc-name">PostgreSQL</span>
+            {_semaforo(postgres_ok, 'Conectado', 'Sin conexión')}
+        </div>
+    </div>
+
+    <!-- RECURSOS -->
+    <div class="section">
+        <h2>📊 Recursos del Servidor</h2>
+        <div class="svc-row">
+            <span class="svc-name">CPU</span>
+            <span style="color:{cpu_color};font-weight:bold;">{cpu}%</span>
+        </div>
+        <div class="svc-row">
+            <div style="flex:1">
+                <span class="svc-name">RAM — {ram_pct}% ({round(ram.used/1024**3,1)} GB / {round(ram.total/1024**3,1)} GB)</span>
+                <div class="bar-wrap"><div class="bar" style="width:{ram_pct}%;background:{ram_color};"></div></div>
+            </div>
+        </div>
+        <div class="svc-row">
+            <div style="flex:1">
+                <span class="svc-name">Disco — {disco_pct}% ({round(disco.used/1024**3,1)} GB / {round(disco.total/1024**3,1)} GB)</span>
+                <div class="bar-wrap"><div class="bar" style="width:{disco_pct}%;background:{disco_color};"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÉTRICAS APP -->
+    <div class="grid">
+        <div class="card">
+            <h3>Usuarios totales</h3>
+            <div class="val">{total_users}</div>
+        </div>
+        <div class="card">
+            <h3>Registros hoy</h3>
+            <div class="val">{usuarios_hoy}</div>
+        </div>
+        <div class="card">
+            <h3>Sin perfil</h3>
+            <div class="val" style="color:#ef4444;">{sin_perfil}</div>
+            <div class="sub2">usuarios sin completar</div>
+        </div>
+        <div class="card">
+            <h3>Candidatos</h3>
+            <div class="val">{total_cands}</div>
+            <div class="sub2">{aprobados} aprobados · {pendientes} pendientes</div>
+        </div>
+    </div>
+
+    <!-- TAREAS FALLIDAS -->
+    <div class="section">
+        <h2>❌ Últimas Tareas Celery Fallidas</h2>
+        {''.join([f'<div class="svc-row"><span style="font-size:13px;">{t.task_name} — <span style="color:#ef4444;">{t.result[:80]}</span></span><span style="color:#9ca3af;font-size:12px;">{t.date_done.strftime("%d/%m %H:%M")}</span></div>' for t in tareas_fallidas]) if tareas_fallidas else '<p style="color:#9ca3af;font-size:13px;">Sin tareas fallidas recientes ✅</p>'}
+    </div>
+
+    <!-- LOGS -->
+    <div class="section">
+        <h2>📋 Logs recientes — Gunicorn</h2>
+        <pre>{logs_gunicorn}</pre>
+    </div>
+    <div class="section">
+        <h2>📋 Logs recientes — Celery</h2>
+        <pre>{logs_celery}</pre>
+    </div>
+
+    </body></html>
+    """
+    return HttpResponse(html)
+
+from .models import Diagnostico
+
+@admin.register(Diagnostico)
+class DiagnosticoMenuAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        return False
+    def has_change_permission(self, request, obj=None):
+        return False
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path('', self.admin_site.admin_view(diagnostico_view), name='talent_app_diagnostico_changelist'),
+        ]
+        return custom + urls
+
+    def changelist_view(self, request, extra_context=None):
+        return diagnostico_view(request)

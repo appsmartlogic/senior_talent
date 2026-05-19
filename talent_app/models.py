@@ -297,3 +297,9 @@ class PasarelaPago(models.Model):
 
     def __str__(self):
         return f'{self.pais.nombre} — {self.get_pasarela_display()}'
+    
+class Diagnostico(models.Model):
+    class Meta:
+        managed = False
+        verbose_name = '🔧 Diagnóstico del Sistema'
+        verbose_name_plural = '🔧 Diagnóstico del Sistema'
