@@ -14,6 +14,7 @@ import subprocess
 import psutil
 import redis
 from datetime import datetime, timedelta
+import time as time_module
 from django.utils import timezone
 from django.http import HttpResponse
 from django.urls import path
@@ -117,6 +118,8 @@ class UsuarioAdmin(BaseUserAdmin):
                     fail_silently=False,
                 )
                 enviados += 1
+                time_module.sleep(0.3)
+
             except Exception as e:
                 self.message_user(request, f'Error enviando a {usuario.email}: {e}', level=messages.ERROR)
 
@@ -171,6 +174,93 @@ class CandidatoAdmin(admin.ModelAdmin):
     list_editable   = ('estado',)
     inlines         = [ExperienciaInline, EducacionInline, IdiomaInline]
     readonly_fields = ('creado_en', 'actualizado_en')
+    actions         = ['enviar_correo_bienvenida']
+
+    @admin.action(description='💌 Enviar correo de bienvenida y confianza')
+    def enviar_correo_bienvenida(self, request, queryset):
+        enviados = 0
+        for candidato in queryset:
+            try:
+                send_mail(
+                    subject='Bienvenido a SeniorTalent — Las empresas vienen a ti',
+                    message='',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[candidato.usuario.email],
+                    html_message=f"""
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:40px 32px;background:#ffffff;border-radius:8px;border:1px solid #e8e8e8;">
+                        <div style="text-align:center;margin-bottom:32px;">
+                            <h1 style="color:#0A0A2E;font-size:24px;margin:0;">SeniorTalent</h1>
+                            <p style="color:#888;font-size:13px;margin:4px 0 0;">talent.smartlogicapp.com</p>
+                        </div>
+                        <p style="color:#333;font-size:15px;line-height:1.6;">Hola, <strong>{candidato.nombre}</strong>,</p>
+                        <p style="color:#333;font-size:15px;line-height:1.6;">
+                            Gracias por hacer parte de <strong>SeniorTalent</strong>. Tu experiencia profesional tiene un valor enorme,
+                            y queremos asegurarnos de que las empresas correctas puedan encontrarte.
+                        </p>
+                        <div style="background:#0A0A2E;border-radius:8px;padding:24px 28px;margin:28px 0;text-align:center;">
+                            <p style="color:#FFD700;font-size:18px;font-weight:bold;margin:0 0 8px;">
+                                Nuestra filosofía es diferente.
+                            </p>
+                            <p style="color:#ffffff;font-size:14px;line-height:1.7;margin:0;">
+                                No queremos que busques empleo.<br>
+                                Queremos que las <strong style="color:#FFD700;">empresas vengan a ti.</strong>
+                            </p>
+                        </div>
+                        <p style="color:#333;font-size:15px;line-height:1.6;">
+                            Tu perfil ya está visible para empresas que buscan profesionales con tu nivel de experiencia.
+                            Cada día, nuevas empresas ingresan a SeniorTalent buscando exactamente el talento que tú tienes.
+                        </p>
+                        <div style="background:#f7f7f7;border-left:4px solid #FFD700;padding:16px 20px;margin:24px 0;border-radius:4px;">
+                            <p style="margin:0 0 8px;color:#0A0A2E;font-weight:bold;font-size:14px;">¿Qué puedes esperar?</p>
+                            <ul style="margin:0;padding-left:18px;color:#444;font-size:14px;line-height:1.9;">
+                                <li>Empresas que contactan directamente a perfiles como el tuyo</li>
+                                <li>Oportunidades alineadas a tu experiencia y disponibilidad</li>
+                                <li>Un proceso sin filtros arbitrarios ni ATS que ignoran tu trayectoria</li>
+                            </ul>
+
+                        </div>
+
+                        <div style="background:#f0f7ff;border:1px solid #d0e8ff;border-radius:8px;padding:16px 20px;margin:24px 0;">
+                            <p style="margin:0 0 8px;color:#0A0A2E;font-weight:bold;font-size:14px;">🔒 Tu privacidad es nuestra prioridad</p>
+                            <ul style="margin:0;padding-left:18px;color:#444;font-size:14px;line-height:1.9;">
+                                <li>Tu hoja de vida <strong>no es almacenada</strong> en nuestros servidores</li>
+                                <li>Nuestra IA solo la lee para ayudarte a completar tu perfil automáticamente</li>
+                                <li>Únicamente guardamos tu <strong>nombre</strong> y <strong>correo electrónico</strong></li>
+                                <li>Nunca compartimos tu información sin tu consentimiento</li>
+                            </ul>
+                        </div>
+
+                        <p style="color:#333;font-size:15px;line-height:1.6;">
+                            Si deseas actualizar tu perfil o agregar más información, puedes hacerlo en cualquier momento.
+                        </p>
+                        <div style="text-align:center;margin:32px 0;">
+                            <a href="https://talent.smartlogicapp.com/dashboard/perfil/"
+                               style="background:#FFD700;color:#0A0A2E;padding:14px 32px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:15px;display:inline-block;">
+                                Ver mi perfil →
+                            </a>
+                        </div>
+                        <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
+                        <p style="color:#333;font-size:14px;margin:0;">Atentamente,</p>
+                        <p style="color:#0A0A2E;font-weight:bold;font-size:14px;margin:4px 0 0;">Equipo SeniorTalent</p>
+                        <p style="margin:4px 0 0;"><a href="https://talent.smartlogicapp.com" style="color:#888;font-size:13px;">talent.smartlogicapp.com</a></p>
+                        <p style="color:#bbb;font-size:11px;margin-top:24px;text-align:center;">
+                            Recibiste este correo porque tienes una cuenta registrada en SeniorTalent.
+                        </p>
+                    </div>
+                    """,
+                    fail_silently=False,
+                )
+                enviados += 1
+                time_module.sleep(0.3)
+
+            except Exception as e:
+                self.message_user(request, f'Error enviando a {candidato.usuario.email}: {e}', level=messages.ERROR)
+
+        self.message_user(
+            request,
+            f'💌 {enviados} correo(s) de bienvenida enviado(s).',
+            level=messages.SUCCESS
+        )
 
 
 @admin.register(Empresa)
@@ -367,7 +457,7 @@ def diagnostico_view(request):
         .back-btn {{ display:inline-block; margin-bottom:20px; background:#0A0A2E; color:#fff; padding:8px 18px; border-radius:6px; text-decoration:none; font-size:13px; }}
     </style>
     </head><body>
-    <a href="/admin/" class="back-btn">← Volver al admin</a>
+    <a href="/gestion-st-2026/" class="back-btn">← Volver al admin</a>
     <h1>🔧 Diagnóstico del Sistema</h1>
     <p class="sub">SeniorTalent · talent.smartlogicapp.com · {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
 

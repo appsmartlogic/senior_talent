@@ -6,8 +6,10 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-cambiar-en-produccion')
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise RuntimeError('SECRET_KEY no esta definida en el entorno. Verifica el archivo .env')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://talent.smartlogicapp.com').split(',')
@@ -23,6 +25,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'talent_app',
     'django.contrib.postgres',
+    'axes',
 ]
 
 MIDDLEWARE = [
@@ -34,6 +37,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'talent_app.middleware.PaisMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'senior_talent.urls'
@@ -70,7 +74,7 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
@@ -94,10 +98,10 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
-STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', '')
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_PUBLIC_KEY    = os.getenv('STRIPE_PUBLIC_KEY', '')
+STRIPE_SECRET_KEY    = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
-PRECIO_CV_USD = 500  # centavos = $5 USD
+PRECIO_CV_USD        = 500
 
 ANYMAIL = {
     'RESEND_API_KEY': os.getenv('RESEND_API_KEY', ''),
@@ -106,51 +110,43 @@ EMAIL_BACKEND      = 'anymail.backends.resend.EmailBackend'
 DEFAULT_FROM_EMAIL = os.getenv('EMAIL_FROM', 'SeniorTalent <noreply@smartlogicapp.com>')
 SERVER_EMAIL       = os.getenv('EMAIL_FROM', 'noreply@smartlogicapp.com')
 
-OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://localhost:11434')
+OLLAMA_URL   = os.getenv('OLLAMA_URL', 'http://localhost:11434')
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.1:8b')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
-IPAPI_URL = 'https://ipapi.co/{ip}/json/'
+IPAPI_URL    = 'https://ipapi.co/{ip}/json/'
 PAIS_DEFAULT = 'CO'
 
-# Celery
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/2'  # DB 2 para no chocar con SmartLogicApp
-CELERY_RESULT_BACKEND = 'django-db'
-CELERY_CACHE_BACKEND = 'default'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
+# -- Celery ---------------------------------------------------
+CELERY_BROKER_URL        = 'redis://127.0.0.1:6379/2'
+CELERY_RESULT_BACKEND    = 'django-db'
+CELERY_CACHE_BACKEND     = 'default'
+CELERY_ACCEPT_CONTENT    = ['json']
+CELERY_TASK_SERIALIZER   = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'America/Bogota'
+CELERY_TIMEZONE          = 'America/Bogota'
 
-
-# PÃ¡ginas de error personalizadas
+# -- Páginas de error personalizadas -------------------------
 handler403 = 'talent_app.views.error_403'
 handler404 = 'talent_app.views.error_404'
-# Crear carpeta de logs automÃ¡ticamente si no existe
+
+# -- Logs -----------------------------------------------------
 LOGS_DIR = BASE_DIR / 'logs'
 LOGS_DIR.mkdir(exist_ok=True)
 
-# LOGGING
-import os
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'verbose': {
-            'format': '{asctime} | {levelname} | {module} | {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{asctime} | {levelname} | {message}',
-            'style': '{',
-        },
+        'verbose': {'format': '{asctime} | {levelname} | {module} | {message}', 'style': '{'},
+        'simple':  {'format': '{asctime} | {levelname} | {message}', 'style': '{'},
     },
     'handlers': {
         'archivo_general': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'general.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'verbose',
             'encoding': 'utf-8',
@@ -159,7 +155,7 @@ LOGGING = {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'errores.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'verbose',
             'encoding': 'utf-8',
@@ -189,11 +185,35 @@ LOGGING = {
     },
 }
 
-# SesiÃ³n â€” 2 horas
-SESSION_COOKIE_AGE = 60 * 60 * 2
+# -- Sesión ---------------------------------------------------
+SESSION_COOKIE_AGE              = 60 * 60 * 2
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_SAVE_EVERY_REQUEST = True
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'None'
+SESSION_SAVE_EVERY_REQUEST      = True
+SESSION_ENGINE                  = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_SECURE           = True
+SESSION_COOKIE_HTTPONLY         = True
+SESSION_COOKIE_SAMESITE         = 'Lax'
+
+# -- Seguridad HTTP -------------------------------------------
+SECURE_SSL_REDIRECT             = not DEBUG
+SECURE_BROWSER_XSS_FILTER       = True
+SECURE_CONTENT_TYPE_NOSNIFF     = True
+SECURE_HSTS_SECONDS             = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS  = True
+SECURE_HSTS_PRELOAD             = True
+SECURE_PROXY_SSL_HEADER         = ('HTTP_X_FORWARDED_PROTO', 'https')
+X_FRAME_OPTIONS                 = 'DENY'
+CSRF_COOKIE_SECURE              = True
+CSRF_COOKIE_HTTPONLY            = True
+CSRF_COOKIE_SAMESITE            = 'Lax'
+
+# -- django-axes (protección fuerza bruta) --------------------
+AXES_FAILURE_LIMIT      = 5
+AXES_COOLOFF_TIME       = 1
+AXES_RESET_ON_SUCCESS   = True
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'axes.backends.AxesStandaloneBackend',
+
+]
