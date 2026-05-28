@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
+from pgvector.django import VectorField
 
 
 # ──────────────────────────────────────────
@@ -127,8 +128,22 @@ class Candidato(models.Model):
     creado_en        = models.DateTimeField(auto_now_add=True)
     actualizado_en   = models.DateTimeField(auto_now=True)
 
+    # Campo de búsqueda precalculado — se actualiza desde search.py
+    # No se edita manualmente. Se construye con los datos del perfil.
+    texto_busqueda   = models.TextField(blank=True, default='', editable=False)
+
+    # Campos de búsqueda vectorial (fase 2 — infraestructura)
+    # embedding: vector de 768 dimensiones (Gemini text-embedding-004 / gemini-embedding-001)
+    # Se llena en fase 3 con un task de Celery. Por ahora queda NULL.
+    embedding                = VectorField(dimensions=768, null=True, blank=True, editable=False)
+    embedding_modelo         = models.CharField(max_length=100, blank=True, default='', editable=False)
+    embedding_actualizado_en = models.DateTimeField(null=True, blank=True, editable=False)
+
     class Meta:
         ordering = ['-creado_en']
+        indexes = [
+            models.Index(fields=['estado'], name='idx_candidato_estado'),
+        ]
 
     def __str__(self):
         return f'{self.nombre} — {self.cargo_actual}'
@@ -218,6 +233,12 @@ class Empresa(models.Model):
     stripe_customer_id = models.CharField(max_length=100, blank=True)
     creado_en          = models.DateTimeField(auto_now_add=True)
 
+    # Créditos de descarga gratuita
+    # Se asignan al registrarse según si es empresa fundadora o no
+    # Se leen desde .env — nunca quemados en código
+    creditos_gratuitos = models.PositiveSmallIntegerField(default=0)
+    creditos_usados    = models.PositiveSmallIntegerField(default=0)
+
     def __str__(self):
         return self.nombre
 
@@ -225,7 +246,14 @@ class Empresa(models.Model):
     def activa(self):
         return self.estado == self.ESTADO_ACTIVA
 
+    @property
+    def creditos_disponibles(self):
+        return max(0, self.creditos_gratuitos - self.creditos_usados)
 
+    @property
+    def tiene_creditos(self):
+        return self.creditos_disponibles > 0
+    
 # ──────────────────────────────────────────
 # DESCARGA DE CV
 # ──────────────────────────────────────────

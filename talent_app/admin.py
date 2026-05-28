@@ -174,7 +174,7 @@ class CandidatoAdmin(admin.ModelAdmin):
     list_editable   = ('estado',)
     inlines         = [ExperienciaInline, EducacionInline, IdiomaInline]
     readonly_fields = ('creado_en', 'actualizado_en')
-    actions         = ['enviar_correo_bienvenida']
+    actions = ['enviar_correo_bienvenida', 'notificar_perfil_incompleto']
 
     @admin.action(description='💌 Enviar correo de bienvenida y confianza')
     def enviar_correo_bienvenida(self, request, queryset):
@@ -262,6 +262,79 @@ class CandidatoAdmin(admin.ModelAdmin):
             level=messages.SUCCESS
         )
 
+    @admin.action(description='⚠️ Notificar perfil incompleto o con errores')
+    def notificar_perfil_incompleto(self, request, queryset):
+        enviados = 0
+        for candidato in queryset:
+            try:
+                send_mail(
+                    subject='Acción requerida: revisa tu perfil en SeniorTalent',
+                    message='',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[candidato.usuario.email],
+                    html_message=f"""
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:40px 32px;background:#ffffff;border-radius:8px;border:1px solid #e8e8e8;">
+
+                        <div style="text-align:center;margin-bottom:32px;">
+                            <h1 style="color:#0A0A2E;font-size:22px;margin:0;">SeniorTalent</h1>
+                            <p style="color:#888;font-size:13px;margin:4px 0 0;">talent.smartlogicapp.com</p>
+                        </div>
+
+                        <p style="color:#333;font-size:15px;line-height:1.6;">Hola, <strong>{candidato.nombre}</strong>,</p>
+
+                        <p style="color:#333;font-size:15px;line-height:1.6;">
+                            Revisamos tu perfil en <strong>SeniorTalent</strong> y notamos que algunos datos
+                            no se guardaron correctamente o están incompletos.
+                        </p>
+
+                        <div style="background:#fff8e1;border-left:4px solid #FFD700;padding:16px 20px;margin:24px 0;border-radius:4px;">
+                            <p style="margin:0 0 8px;color:#0A0A2E;font-weight:bold;font-size:14px;">¿Qué debes hacer?</p>
+                            <ol style="margin:0;padding-left:18px;color:#444;font-size:14px;line-height:1.9;">
+                                <li>Ingresa con tu correo <strong>{candidato.usuario.email}</strong></li>
+                                <li>Ve a <strong>Editar perfil</strong></li>
+                                <li>Revisa que tus datos estén completos y correctos</li>
+                                <li>Haz clic en <strong>Guardar</strong> para confirmar</li>
+                            </ol>
+                        </div>
+
+                        <p style="color:#333;font-size:14px;line-height:1.6;background:#f7f7f7;padding:12px 16px;border-radius:6px;">
+                            Verifica especialmente: cargo actual, resumen profesional, sectores, habilidades e idiomas.
+                            Estos campos son los que las empresas ven primero al buscar talento.
+                        </p>
+
+                        <div style="text-align:center;margin:32px 0;">
+                            <a href="https://talent.smartlogicapp.com/dashboard/perfil/"
+                               style="background:#FFD700;color:#0A0A2E;padding:14px 32px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:15px;display:inline-block;">
+                                Revisar mi perfil →
+                            </a>
+                        </div>
+
+                        <p style="color:#333;font-size:15px;line-height:1.6;">
+                            Si tienes dudas o necesitas ayuda, responde este correo y te asistimos de inmediato.
+                        </p>
+
+                        <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
+                        <p style="color:#333;font-size:14px;margin:0;">Atentamente,</p>
+                        <p style="color:#0A0A2E;font-weight:bold;font-size:14px;margin:4px 0 0;">Equipo SeniorTalent</p>
+                        <p style="margin:4px 0 0;"><a href="https://talent.smartlogicapp.com" style="color:#888;font-size:13px;">talent.smartlogicapp.com</a></p>
+
+                        <p style="color:#bbb;font-size:11px;margin-top:24px;text-align:center;">
+                            Recibiste este correo porque tienes una cuenta registrada en SeniorTalent.
+                        </p>
+                    </div>
+                    """,
+                    fail_silently=False,
+                )
+                enviados += 1
+                time_module.sleep(0.3)
+            except Exception as e:
+                self.message_user(request, f'Error enviando a {candidato.usuario.email}: {e}', level=messages.ERROR)
+
+        self.message_user(
+            request,
+            f'⚠️ {enviados} notificacion(es) de perfil incompleto enviada(s).',
+            level=messages.SUCCESS
+        )
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):

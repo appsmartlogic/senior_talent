@@ -277,9 +277,19 @@
         <span class="btn-ya-pago">✓ CV ya descargado</span>
       {% elif empresa_activa %}
         <a href="{% url 'iniciar_pago' candidato.pk %}" class="btn-descargar">
-          Descargar CV — Pago por uso
+          {% if empresa.tiene_creditos %}
+            Descargar CV — Gratis
+          {% else %}
+            Descargar CV — Pago por uso
+          {% endif %}
         </a>
-        <p class="precio-info">Incluye CV completo y datos de contacto directos</p>
+        {% if empresa.tiene_creditos %}
+          <p class="precio-info" style="color:#0F6E56;">
+            Tienes {{ empresa.creditos_disponibles }} descarga(s) gratuita(s) disponible(s)
+          </p>
+        {% else %}
+          <p class="precio-info">Incluye CV completo y datos de contacto directos</p>
+        {% endif %}
       {% else %}
         <button class="btn-descargar" disabled
           style="opacity:.5;cursor:not-allowed;background:#aaa;border-color:#aaa;">

@@ -249,6 +249,42 @@
     white-space: nowrap;
   }
 
+  .search-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    max-width: 600px;
+  }
+  .search-hint-label {
+    color: #888;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .search-example {
+    display: inline-block;
+    background: #F4F2EC;
+    color: #444;
+    border: 1px solid #e5e5e3;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .search-example:hover {
+    background: #EEEDFE;
+    color: #5349B7;
+    border-color: #AFA9EC;
+  }
+
 </style>
 {% endblock %}
 
@@ -257,8 +293,8 @@
 <div class="directorio-header">
   <div class="container">
     <h1>Directorio de talento senior</h1>
-   <form class="search-row" method="get" action="{% url 'directorio' %}">
-     <input type="text" name="q" value="{{ filtros.q }}" placeholder="Ej: finanzas, marketing, tecnología"> 
+    <form class="search-row" method="get" action="{% url 'directorio' %}">
+     <input type="text" name="q" id="search-input" value="{{ filtros.q }}" placeholder="Busca por habilidad, ciudad, cargo o sector...">
      {% if filtros.pais %}<input type="hidden" name="pais" value="{{ filtros.pais }}">{% endif %}
       {% if filtros.sector %}<input type="hidden" name="sector" value="{{ filtros.sector }}">{% endif %}
       {% if filtros.exp_min %}<input type="hidden" name="exp_min" value="{{ filtros.exp_min }}">{% endif %}
@@ -266,8 +302,13 @@
       {% if filtros.nivel_idioma %}<input type="hidden" name="nivel_idioma" value="{{ filtros.nivel_idioma }}">{% endif %}
       <button type="submit">Buscar</button>
     </form>
-      <div style="font-size:11px;color:#A32D2D;margin-top:6px;line-height:1.8;">
-      * Separa términos con <strong>coma (,)</strong> para buscar varias alternativas. Ej: <strong>tecnologia, finanzas, marketing</strong>
+
+    <div class="search-hint">
+      <span class="search-hint-label">Ejemplo:</span>
+      <button type="button" class="search-example" data-q="necesito un contador senior en Bogotá">necesito un contador senior en Bogotá</button>
+      <button type="button" class="search-example" data-q="líder con experiencia en salud">líder con experiencia en salud</button>
+      <button type="button" class="search-example" data-q="finanzas, marketing">finanzas, marketing</button>
+      <span style="color:#aaa;font-size:11px;margin-left:4px;">· separa con coma para alternativas</span>
     </div>
   </div>
 </div>
@@ -420,6 +461,40 @@
       <p>Intenta con otros filtros o amplía tu búsqueda</p>
     </div>
     {% endfor %}
+
+    {% if pagina.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:24px;padding-bottom:16px;flex-wrap:wrap;">
+
+      {% if pagina.has_previous %}
+        <a href="?{% for key, value in filtros.items %}{% if key != 'pagina' %}{{ key }}={{ value }}&{% endif %}{% endfor %}pagina={{ pagina.previous_page_number }}"
+           style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#444;text-decoration:none;background:#fff;">
+          ← Anterior
+        </a>
+      {% endif %}
+
+      {% for num in pagina.paginator.page_range %}
+        {% if pagina.number == num %}
+          <span style="padding:8px 14px;border:1px solid #5349B7;border-radius:8px;font-size:13px;color:#fff;background:#5349B7;font-weight:600;">
+            {{ num }}
+          </span>
+        {% elif num > pagina.number|add:'-3' and num < pagina.number|add:'3' %}
+          <a href="?{% for key, value in filtros.items %}{% if key != 'pagina' %}{{ key }}={{ value }}&{% endif %}{% endfor %}pagina={{ num }}"
+             style="padding:8px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#444;text-decoration:none;background:#fff;">
+            {{ num }}
+          </a>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagina.has_next %}
+        <a href="?{% for key, value in filtros.items %}{% if key != 'pagina' %}{{ key }}={{ value }}&{% endif %}{% endfor %}pagina={{ pagina.next_page_number }}"
+           style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#444;text-decoration:none;background:#fff;">
+          Siguiente →
+        </a>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
   </div>
 
 </div>
@@ -429,6 +504,17 @@
 function toggleFiltros() {
   document.getElementById('sidebar-filtros').classList.toggle('open');
 }
+
+/* Ejemplos clicables — llenan la caja y envían el formulario */
+document.querySelectorAll('.search-example').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var input = document.getElementById('search-input');
+    if (input) {
+      input.value = btn.getAttribute('data-q');
+      input.closest('form').submit();
+    }
+  });
+});
 </script>
 {% endblock %}
 

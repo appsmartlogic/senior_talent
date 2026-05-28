@@ -24,9 +24,93 @@ from .models import (
     Usuario, Pais, Sector, Candidato, ExperienciaLaboral,
     Educacion, IdiomaCandiato, Empresa, DescargaCV, EMAILS_BLOQUEADOS
 )
-
+from .search import actualizar_texto_busqueda
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+
+# ──────────────────────────────────────────
+# RECUPERACIÓN DE CONTRASEÑA PERSONALIZADA
+# ──────────────────────────────────────────
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.template.loader import render_to_string
+from django.core.mail import send_mail as _send_mail
+
+def password_reset_view(request):
+    """Paso 1 — El usuario ingresa su email."""
+    from django.contrib.auth.forms import PasswordResetForm
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        usuarios = Usuario.objects.filter(email=email, is_active=True)
+        if usuarios.exists():
+            for usuario in usuarios:
+                uid = urlsafe_base64_encode(force_bytes(usuario.pk))
+                token = default_token_generator.make_token(usuario)
+                ctx = {
+                    'protocol': 'https',
+                    'domain': 'talent.smartlogicapp.com',
+                    'uid': uid,
+                    'token': token,
+                    'user': usuario,
+                    'site_name': 'SeniorTalent',
+                }
+                html = render_to_string(
+                    'talent_app/emails/password_reset_email.html', ctx
+                )
+                try:
+                    _send_mail(
+                        subject='Recupera tu contraseña en SeniorTalent',
+                        message='',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[usuario.email],
+                        html_message=html,
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    logger.error(f'Error enviando correo recuperacion a {email}: {e}')
+        return redirect('password_reset_done')
+    return render(request, 'talent_app/password_reset.html')
+
+
+def password_reset_confirm_view(request, uidb64, token):
+    """Paso 3 — El usuario ingresa su nueva contraseña."""
+    from django.contrib.auth.password_validation import validate_password
+    from django.core.exceptions import ValidationError
+
+    validlink = False
+    usuario = None
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        usuario = Usuario.objects.get(pk=uid)
+        if default_token_generator.check_token(usuario, token):
+            validlink = True
+    except Exception:
+        pass
+
+    if request.method == 'POST' and validlink and usuario:
+        p1 = request.POST.get('new_password1', '')
+        p2 = request.POST.get('new_password2', '')
+        if p1 != p2:
+            messages.error(request, 'Las contraseñas no coinciden.')
+            return render(request, 'talent_app/password_reset_confirm.html', {
+                'validlink': True
+            })
+        try:
+            validate_password(p1, usuario)
+        except ValidationError as e:
+            for error in e.messages:
+                messages.error(request, error)
+            return render(request, 'talent_app/password_reset_confirm.html', {
+                'validlink': True
+            })
+        usuario.set_password(p1)
+        usuario.save()
+        return redirect('password_reset_complete')
+
+    return render(request, 'talent_app/password_reset_confirm.html', {
+        'validlink': validlink
+    })
 
 # ──────────────────────────────────────────
 # PÚBLICAS
@@ -75,40 +159,96 @@ def directorio(request):
 
     q = request.GET.get('q')
     if q:
-        from functools import reduce
-        import operator
-
+        # Normalizar la entrada del usuario una sola vez
         import unicodedata
-        def normalizar(texto):
+        def _normalizar(texto):
             return ''.join(
                 c for c in unicodedata.normalize('NFD', texto.lower())
                 if unicodedata.category(c) != 'Mn'
-            )
+            ).strip()
 
-        # DESPUÉS
-        def filtro_termino(termino):
-            return (
-                Q(cargo_actual__unaccent__icontains=termino) |
-                Q(habilidades__unaccent__icontains=termino) |
-                Q(resumen__unaccent__icontains=termino) |
-                Q(ciudad__unaccent__icontains=termino) |
-                Q(pais__nombre__unaccent__icontains=termino) |
-                Q(sectores__nombre__unaccent__icontains=termino) |
-                Q(idiomas__idioma__unaccent__icontains=termino) |
-                Q(disponibilidad__unaccent__icontains=termino)
-            )
+        # Modo activo del buscador (definido en settings.SEARCH_MODE)
+        modo = getattr(settings, 'SEARCH_MODE', 'old')
+        usado = 'old'  # para log/debug
 
-        # Frases separadas por coma = OR entre ellas
-        # Palabras dentro de cada frase = AND entre ellas
-        frases = [f.strip() for f in q.split(',') if f.strip()]
-        query_total = None
-        for frase in frases:
-            if not frase:
-                continue
-            query_total = filtro_termino(frase) if query_total is None else (query_total | filtro_termino(frase))
+        # ──────────────────────────────────────────────
+        # MODO HÍBRIDO — decide automáticamente entre fulltext y semántica
+        # según la naturaleza de la frase del usuario
+        # ──────────────────────────────────────────────
+        if modo == 'hybrid':
+            from .semantic_search import es_consulta_semantica, buscar_candidatos_semantico
 
-        if query_total is not None:
-            candidatos = candidatos.filter(query_total).distinct()
+            if es_consulta_semantica(q):
+                resultados_semanticos = buscar_candidatos_semantico(q, candidatos, limite=10)
+                if resultados_semanticos is not None:
+                    candidatos = resultados_semanticos
+                    usado = 'semantic'
+                    # Si la búsqueda semántica devuelve 0, caer a fulltext
+                    if not list(candidatos):
+                        modo = 'fulltext'
+                        usado = 'fulltext_fallback'
+                        candidatos = Candidato.objects.filter(
+                            estado=Candidato.ESTADO_APROBADO
+                        ).select_related('pais').prefetch_related('sectores', 'idiomas')
+                else:
+                    modo = 'fulltext'
+                    usado = 'fulltext_fallback'
+            else:
+                modo = 'fulltext'
+                usado = 'fulltext'
+
+        # ──────────────────────────────────────────────
+        # MODO FULLTEXT (también es el fallback de hybrid)
+        # ──────────────────────────────────────────────
+        if modo == 'fulltext':
+            frases = [_normalizar(f) for f in q.split(',') if f.strip()]
+            query_total = None
+            for frase in frases:
+                if not frase:
+                    continue
+                palabras = frase.split()
+                if not palabras:
+                    continue
+                q_frase = Q()
+                for palabra in palabras:
+                    palabra_limpia = palabra.strip()
+                    if len(palabra_limpia) < 2:
+                        continue
+                    q_frase &= Q(texto_busqueda__icontains=palabra_limpia)
+                query_total = q_frase if query_total is None else (query_total | q_frase)
+
+            if query_total is not None:
+                candidatos = candidatos.filter(query_total)
+
+        # ──────────────────────────────────────────────
+        # MODO OLD — búsqueda original con unaccent en 8 campos
+        # Red de seguridad — se mantiene para poder revertir en 1 segundo
+        # ──────────────────────────────────────────────
+        elif modo == 'old':
+            def filtro_termino(termino):
+                return (
+                    Q(cargo_actual__unaccent__icontains=termino) |
+                    Q(habilidades__unaccent__icontains=termino) |
+                    Q(resumen__unaccent__icontains=termino) |
+                    Q(ciudad__unaccent__icontains=termino) |
+                    Q(pais__nombre__unaccent__icontains=termino) |
+                    Q(sectores__nombre__unaccent__icontains=termino) |
+                    Q(idiomas__idioma__unaccent__icontains=termino) |
+                    Q(disponibilidad__unaccent__icontains=termino)
+                )
+
+            frases = [f.strip() for f in q.split(',') if f.strip()]
+            query_total = None
+            for frase in frases:
+                if not frase:
+                    continue
+                query_total = filtro_termino(frase) if query_total is None else (query_total | filtro_termino(frase))
+
+            if query_total is not None:
+                candidatos = candidatos.filter(query_total).distinct()
+
+        
+        logger.info(f'Directorio search | modo={modo} | usado={usado} | q="{q[:60]}"')
 
     paises   = Pais.objects.filter(activo=True)
     sectores = Sector.objects.all()
@@ -118,8 +258,23 @@ def directorio(request):
         and hasattr(request.user, 'empresa')
         and request.user.empresa.estado == 'activa'
     )
+
+    # Paginación — 12 candidatos por página
+    from django.core.paginator import Paginator
+    candidatos_lista = list(candidatos) if q else list(candidatos.distinct())
+    paginator = Paginator(candidatos_lista, 12)
+    pagina_num = request.GET.get('pagina', 1)
+    try:
+        pagina_num = int(pagina_num)
+        if pagina_num < 1:
+            pagina_num = 1
+    except (ValueError, TypeError):
+        pagina_num = 1
+    pagina = paginator.get_page(pagina_num)
+
     return render(request, 'talent_app/directorio.html', {
-        'candidatos': candidatos.distinct(),
+        'candidatos': pagina,
+        'pagina': pagina,
         'paises': paises,
         'sectores': sectores,
         'filtros': request.GET,
@@ -130,18 +285,20 @@ def perfil_candidato(request, pk):
     candidato = get_object_or_404(Candidato, pk=pk, estado=Candidato.ESTADO_APROBADO)
     ya_pago = False
     empresa_activa = False
+    empresa_obj = None
     if request.user.is_authenticated and hasattr(request.user, 'empresa'):
-        empresa = request.user.empresa
+        empresa_obj = request.user.empresa
         ya_pago = DescargaCV.objects.filter(
-            empresa=empresa,
+            empresa=empresa_obj,
             candidato=candidato,
             estado=DescargaCV.ESTADO_PAGADO
         ).exists()
-        empresa_activa = empresa.activa
+        empresa_activa = empresa_obj.activa
     return render(request, 'talent_app/perfil_candidato.html', {
         'candidato': candidato,
         'ya_pago': ya_pago,
         'empresa_activa': empresa_activa,
+        'empresa': empresa_obj,
     })
 
 # ──────────────────────────────────────────
@@ -246,12 +403,21 @@ def registro_empresa(request):
 
         usuario = Usuario.objects.create_user(email=email, password=password, tipo=Usuario.TIPO_EMPRESA)
         
+        import os
+        limite_fundadoras = int(os.getenv('EMPRESAS_FUNDADORAS_LIMITE', 100))
+        creditos_fundadora = int(os.getenv('CREDITOS_EMPRESA_FUNDADORA', 5))
+        creditos_normal = int(os.getenv('CREDITOS_EMPRESA_NORMAL', 3))
+        total_empresas = Empresa.objects.count()
+        creditos = creditos_fundadora if total_empresas < limite_fundadoras else creditos_normal
+
         Empresa.objects.create(
             usuario=usuario,
             nombre=nombre,
             pais_id=pais_id,
             num_tributario=num_tributario,
+            creditos_gratuitos=creditos,
         )
+        
         login(request, usuario, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, '¡Empresa registrada! Tu cuenta será verificada pronto.')
         try:
@@ -324,11 +490,18 @@ def dashboard(request):
         candidato=candidato,
         estado=DescargaCV.ESTADO_PAGADO
     ).count()
+    import os
+    whatsapp_number = os.getenv('WHATSAPP_NUMBER', '')
+    mensaje_whatsapp = (
+        f"Hola, soy {candidato.nombre} ({candidato.usuario.email}), "
+        f"profesional registrado en SeniorTalent. Necesito ayuda con..."
+    )
     return render(request, 'talent_app/dashboard_candidato.html', {
         'candidato': candidato,
         'total_descargas': descargas,
+        'whatsapp_number': whatsapp_number,
+        'mensaje_whatsapp': mensaje_whatsapp,
     })
-
 
 @login_required
 def editar_perfil(request):
@@ -410,6 +583,21 @@ def editar_perfil(request):
                     nivel=idiomas_niveles[i] if i < len(idiomas_niveles) else 'intermedio',
                 )
 
+       # Recalcular el campo de búsqueda con TODO ya guardado
+        # actualizar_texto_busqueda nunca lanza excepción — si falla,
+        # el perfil queda guardado igual y se queda con el texto anterior
+        actualizar_texto_busqueda(candidato)
+
+        # Disparar la regeneración del embedding en segundo plano (Celery)
+        # No bloquea al usuario — el perfil se guarda en segundos y el
+        # vector se actualiza en 1-2 segundos detrás del telón.
+        try:
+            from .tasks import actualizar_embedding_task
+            actualizar_embedding_task.delay(candidato.pk)
+            logger.info(f'Embedding task encolado para candidato {candidato.pk}')
+        except Exception as e:
+            logger.error(f'No se pudo encolar embedding para candidato {candidato.pk}: {type(e).__name__}: {e}')
+
         messages.success(request, 'Perfil actualizado correctamente.')
         return redirect('dashboard')
 
@@ -487,10 +675,24 @@ def empresa_candidatos(request):
 
     total_invertido = sum(d.monto_usd for d in descargas_pagadas if d.monto_usd)
 
+    import os
+    whatsapp_number = os.getenv('WHATSAPP_NUMBER', '')
+    mensaje_whatsapp = (
+        f"Hola, soy {empresa.nombre} ({empresa.usuario.email}), "
+        f"empresa registrada en SeniorTalent for SmartLogicApp. Necesito ayuda con..."
+    )
+    import os
+    whatsapp_number = os.getenv('WHATSAPP_NUMBER', '')
+    mensaje_whatsapp = (
+        f"Hola, soy {empresa.nombre} ({empresa.usuario.email}), "
+        f"empresa registrada en SeniorTalent. Necesito ayuda con..."
+    )
     return render(request, 'talent_app/empresa_candidatos.html', {
         'empresa': empresa,
         'descargas': descargas_pagadas,
         'total_invertido': total_invertido,
+        'whatsapp_number': whatsapp_number,
+        'mensaje_whatsapp': mensaje_whatsapp,
     })
 
 
@@ -616,19 +818,74 @@ def iniciar_pago(request, candidato_id):
         estado=DescargaCV.ESTADO_PAGADO
     ).exists()
     if ya_pago:
-        logger.info(f'CV ya descargado previamente — empresa: {empresa.nombre}')
+        logger.info(f'CV ya descargado previamente - empresa: {empresa.nombre}')
         messages.info(request, 'Ya descargaste este CV anteriormente.')
         return redirect('empresa_candidatos')
 
-    # Obtener pasarela configurada para el país de la empresa
+    # ── Créditos gratuitos ───────────────────────────────────────────────────
+    # Si la empresa tiene créditos disponibles, la descarga es gratuita.
+    # Se descuenta en transacción atómica para evitar race conditions.
+    # El precio siempre viene del admin (pasarela_config.precio_cv), nunca quemado.
+    if empresa.tiene_creditos:
+        from django.db import transaction
+        try:
+            with transaction.atomic():
+                # Re-leer con lock para evitar descuento doble en clicks simultáneos
+                empresa_lock = Empresa.objects.select_for_update().get(pk=empresa.pk)
+                if empresa_lock.tiene_creditos:
+                    empresa_lock.creditos_usados += 1
+                    empresa_lock.save(update_fields=['creditos_usados'])
+                    descarga, _ = DescargaCV.objects.get_or_create(
+                        empresa=empresa,
+                        candidato=candidato,
+                        defaults={'estado': DescargaCV.ESTADO_PAGADO, 'monto_usd': 0}
+                    )
+                    if descarga.estado != DescargaCV.ESTADO_PAGADO:
+                        descarga.estado = DescargaCV.ESTADO_PAGADO
+                        descarga.monto_usd = 0
+                        from django.utils import timezone
+                        descarga.pagado_en = timezone.now()
+                        descarga.save(update_fields=['estado', 'monto_usd', 'pagado_en'])
+
+                    creditos_restantes = empresa_lock.creditos_disponibles
+                    logger.info(
+                        f'Descarga gratuita | empresa: {empresa.nombre} | '
+                        f'candidato: {candidato.nombre} | '
+                        f'creditos restantes: {creditos_restantes}'
+                    )
+
+                    if creditos_restantes == 0:
+                        messages.success(
+                            request,
+                            f'CV de {candidato.nombre} descargado. '
+                            f'Has usado todos tus créditos gratuitos. '
+                            f'A partir de ahora cada descarga tiene un costo.'
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            f'CV de {candidato.nombre} descargado gratuitamente. '
+                            f'Te quedan {creditos_restantes} descarga(s) gratuita(s).'
+                        )
+                    return redirect('empresa_candidatos')
+                else:
+                    # Otro proceso consumió el último crédito justo antes — caer a pago
+                    logger.info(f'Race condition en creditos — empresa: {empresa.nombre}, cayendo a pago')
+
+        except Exception as e:
+            logger.error(f'Error en descarga gratuita — empresa: {empresa.nombre} — {e}')
+            messages.error(request, 'Error procesando la descarga. Intenta de nuevo.')
+            return redirect('perfil_candidato', pk=candidato_id)
+
+    # ── Flujo de pago normal (sin créditos) ──────────────────────────────────
     try:
         pasarela_config = empresa.pais.pasarela
         if not pasarela_config.activa:
-            messages.error(request, 'No hay pasarela de pago activa para tu país. Contáctanos.')
+            messages.error(request, 'No hay pasarela de pago activa para tu pais. Contactanos.')
             return redirect('perfil_candidato', pk=candidato_id)
     except Exception:
-        messages.error(request, 'No hay pasarela de pago configurada para tu país. Contáctanos.')
-        logger.error(f'Sin pasarela configurada para país: {empresa.pais.nombre}')
+        messages.error(request, 'No hay pasarela de pago configurada para tu pais. Contactanos.')
+        logger.error(f'Sin pasarela configurada para pais: {empresa.pais.nombre}')
         return redirect('perfil_candidato', pk=candidato_id)
 
     try:

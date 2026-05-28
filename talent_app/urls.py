@@ -1,4 +1,5 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
@@ -30,4 +31,25 @@ urlpatterns = [
     path('dashboard/cv/estado/<str:task_id>/', views.estado_tarea, name='estado_tarea'),
     path('pago/wompi/webhook/', views.wompi_webhook, name='wompi_webhook'),
     path('empresa/soporte/', views.solicitar_soporte, name='solicitar_soporte'),
+
+    # Recuperación de contraseña
+    path('recuperar-clave/',
+         views.password_reset_view,
+         name='password_reset'),
+
+    path('recuperar-clave/enviado/',
+         auth_views.PasswordResetDoneView.as_view(
+             template_name='talent_app/password_reset_done.html',
+         ),
+         name='password_reset_done'),
+
+    path('recuperar-clave/confirmar/<uidb64>/<token>/',
+         views.password_reset_confirm_view,
+         name='password_reset_confirm'),
+
+    path('recuperar-clave/listo/',
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='talent_app/password_reset_complete.html',
+         ),
+         name='password_reset_complete'),
 ]
