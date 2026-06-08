@@ -52,4 +52,7 @@ urlpatterns = [
              template_name='talent_app/password_reset_complete.html',
          ),
          name='password_reset_complete'),
+
+    # Legal
+    path('privacidad/', views.privacidad, name='privacidad'),
 ]

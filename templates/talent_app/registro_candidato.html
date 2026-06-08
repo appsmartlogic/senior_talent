@@ -116,6 +116,16 @@
         </div>
       </div>
 
+      <div class="form-group" style="margin-top:16px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:#64748b;line-height:1.5;">
+          <input type="checkbox" name="acepta_privacidad" required
+            style="margin-top:3px;min-width:16px;accent-color:#5349B7;">
+          <span>Al registrarme acepto que mi perfil profesional (nombre, cargo, experiencia y habilidades) será visible para empresas en el directorio SeniorTalent, conforme a la
+            <a href="{% url 'privacidad' %}" target="_blank" style="color:#5349B7;">Política de Privacidad</a>
+            y la Ley 1581 de 2012.
+          </span>
+        </label>
+      </div>
       <button type="submit" class="btn btn-primary btn-block">
         Crear mi perfil gratis
       </button>

@@ -121,10 +121,12 @@ def home(request):
     total = Candidato.objects.filter(estado=Candidato.ESTADO_APROBADO).count()
     total_pais = Candidato.objects.filter(estado=Candidato.ESTADO_APROBADO, pais__codigo=pais_codigo).count()
     sectores = Sector.objects.all()
+    total_paises = Pais.objects.filter(activo=True).count()
     return render(request, 'talent_app/home.html', {
         'total': total,
         'total_pais': total_pais,
         'sectores': sectores,
+        'total_paises': total_paises,
     })
 
 
@@ -314,6 +316,9 @@ def registro_candidato(request):
         pais_id  = request.POST.get('pais')
         ciudad   = request.POST.get('ciudad', '').strip()
 
+        if not request.POST.get('acepta_privacidad'):
+            messages.error(request, 'Debes aceptar la política de privacidad para registrarte.')
+            return render(request, 'talent_app/registro_candidato.html', {'paises': paises})
         if Usuario.objects.filter(email=email).exists():
             messages.error(request, 'Ya existe una cuenta con ese correo.')
             return render(request, 'talent_app/registro_candidato.html', {'paises': paises})
@@ -1116,3 +1121,6 @@ Mensaje:
         logger.error(f'Error enviando soporte: {e}')
         return JsonResponse({'ok': False}, status=500)
     
+
+def privacidad(request):
+    return render(request, 'talent_app/privacidad.html')
