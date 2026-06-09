@@ -1,0 +1,105 @@
+{% extends 'talent_app/base.html' %}
+{% block title %}Buscar ofertas con IA · SeniorTalent{% endblock %}
+{% block extra_css %}
+<style>
+  .wrap { max-width: 900px; margin: 32px auto; padding: 0 24px; }
+  .oferta-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .oferta-titulo { font-size: 17px; font-weight: 700; color: #0A0A2E; margin-bottom: 4px; }
+  .oferta-empresa { font-size: 14px; color: #5349B7; font-weight: 600; margin-bottom: 8px; }
+  .oferta-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .oferta-tag { background: #f3f4f6; color: #555; padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+  .oferta-match { background: #E1F5EE; color: #0F6E56; padding: 8px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+  .btn-ver { background: #0A0A2E; color: #FFD700; padding: 9px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 13px; display: inline-block; }
+  .loading { text-align: center; padding: 60px 0; }
+  .spinner { width: 40px; height: 40px; border: 4px solid #e5e5e3; border-top-color: #5349B7; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <div style="margin-bottom:24px;">
+    <a href="{% url 'dashboard' %}" style="color:#5349B7;font-size:13px;text-decoration:none;">← Volver al dashboard</a>
+  </div>
+
+  <div style="background:linear-gradient(135deg,#0A0A2E,#1a1a4e);border-radius:12px;padding:28px;margin-bottom:28px;">
+    <h1 style="color:#FFD700;font-size:20px;margin:0 0 6px;">🔍 Buscar ofertas con IA</h1>
+    <p style="color:#ccc;font-size:14px;margin:0 0 16px;">
+      Nuestra IA analiza tu perfil y genera oportunidades laborales personalizadas. Copia los términos y búscalos en cualquier bolsa de empleo.
+    </p>
+    {% if disponibles > 0 %}
+      <form method="post" id="form-busqueda">
+        {% csrf_token %}
+        <button type="submit" id="btn-buscar"
+          style="background:#FFD700;color:#0A0A2E;padding:11px 26px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:pointer;">
+          Buscar mis ofertas →
+        </button>
+        <span style="color:#aaa;font-size:13px;margin-left:14px;">
+          Te quedan <strong style="color:#FFD700;">{{ disponibles }}</strong> búsqueda(s) este mes
+        </span>
+      </form>
+    {% else %}
+      <button disabled style="background:#444;color:#888;padding:11px 26px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:not-allowed;">
+        Sin búsquedas disponibles
+      </button>
+      <span style="color:#888;font-size:13px;margin-left:14px;">Vuelve el próximo mes</span>
+    {% endif %}
+  </div>
+
+  <div id="loading" style="display:none;" class="loading">
+    <div class="spinner"></div>
+    <p style="color:#888;font-size:15px;">La IA está analizando tu perfil...<br><span style="font-size:13px;">Esto toma unos segundos</span></p>
+  </div>
+
+  {% if ofertas is not None %}
+    {% if ofertas %}
+      <h2 style="font-size:17px;font-weight:700;margin-bottom:20px;">
+        ✅ {{ ofertas|length }} oportunidades para tu perfil
+      </h2>
+      {% for oferta in ofertas %}
+      <div class="oferta-card">
+        <div class="oferta-titulo">{{ oferta.titulo }}</div>
+        <div class="oferta-empresa">{{ oferta.tipo_empresa }}</div>
+        <div class="oferta-meta">
+          <span class="oferta-tag">📍 {{ oferta.ubicacion }}</span>
+          {% if oferta.salario_estimado %}
+          <span class="oferta-tag">💰 {{ oferta.salario_estimado }}</span>
+          {% endif %}
+        </div>
+        <div class="oferta-match">✓ {{ oferta.por_que_coincide }}</div>
+        <div style="background:#f7f7f7;border-radius:8px;padding:12px 16px;margin-bottom:14px;">
+          <p style="font-size:12px;color:#888;margin:0 0 6px;font-weight:600;">BUSCA CON ESTOS TÉRMINOS:</p>
+          <p style="font-size:14px;color:#0A0A2E;font-weight:700;margin:0 0 10px;">{{ oferta.terminos_busqueda }}</p>
+          <button onclick="navigator.clipboard.writeText('{{ oferta.terminos_busqueda }}');this.textContent='✓ Copiado!';setTimeout(()=>this.textContent='📋 Copiar términos',2000)"
+            style="background:#e5e5e3;color:#333;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;">
+            📋 Copiar términos
+          </button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <a href="https://www.google.com/search?q={{ oferta.terminos_busqueda|urlencode }}+empleo+Colombia+site:linkedin.com+OR+site:computrabajo.com+OR+site:elempleo.com+OR+site:indeed.com"
+             target="_blank" class="btn-ver" style="font-size:12px;padding:7px 14px;">
+             🔍 Buscar en bolsas de empleo →
+          </a>
+          <a href="https://www.google.com/search?q={{ oferta.terminos_busqueda|urlencode }}+empleo+Colombia"
+             target="_blank" class="btn-ver" style="font-size:12px;padding:7px 14px;background:#555;">
+             🌎 Buscar en Google →
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center;padding:40px;color:#888;">
+        <p>No encontramos oportunidades en este momento. Intenta de nuevo.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+
+<script>
+document.getElementById('form-busqueda')?.addEventListener('submit', function() {
+  document.getElementById('btn-buscar').disabled = true;
+  document.getElementById('btn-buscar').textContent = 'Analizando...';
+  document.getElementById('loading').style.display = 'block';
+});
+</script>
+{% endblock %}

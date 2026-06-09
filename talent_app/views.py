@@ -3,6 +3,7 @@ from weakref import ref
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -12,7 +13,7 @@ from django.utils import timezone
 from django.db.models import Q
 import stripe
 import json
-
+import json as _json
 import logging
 from django.contrib.postgres.search import SearchVector
 
@@ -1120,7 +1121,149 @@ Mensaje:
     except Exception as e:
         logger.error(f'Error enviando soporte: {e}')
         return JsonResponse({'ok': False}, status=500)
-    
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def buscar_ofertas_ia(request):
+    from django.utils import timezone
+    from django.core.cache import cache
+    candidato = get_object_or_404(Candidato, usuario=request.user)
+
+    # Reset mensual automático
+    hoy = timezone.now().date()
+    if (not candidato.busquedas_ia_reset or
+        candidato.busquedas_ia_reset.month != hoy.month or
+        candidato.busquedas_ia_reset.year != hoy.year):
+        candidato.busquedas_ia_usadas = 0
+        candidato.busquedas_ia_reset  = hoy
+        candidato.save(update_fields=['busquedas_ia_usadas', 'busquedas_ia_reset'])
+
+    if request.method == 'GET':
+        return render(request, 'talent_app/buscar_ofertas_ia.html', {
+            'candidato': candidato,
+            'disponibles': candidato.busquedas_ia_disponibles,
+            'ofertas': None,
+        })
+
+    # POST — ejecutar búsqueda
+    if not candidato.tiene_busquedas_ia:
+        messages.error(request, 'Agotaste tus búsquedas este mes. Vuelve el próximo mes.')
+        return redirect('buscar_ofertas_ia')
+
+    sectores = ', '.join([s.nombre for s in candidato.sectores.all()])
+    habilidades = ', '.join(candidato.habilidades) if candidato.habilidades else ''
+    from talent_app.models import IdiomaCandiato
+    idiomas_qs = IdiomaCandiato.objects.filter(candidato=candidato)
+    idiomas = ', '.join([f"{i.idioma} ({i.nivel})" for i in idiomas_qs]) if idiomas_qs.exists() else 'Español (Nativo)'
+
+    prompt = f"""Eres un experto en reclutamiento de talento senior en Colombia y Latinoamérica.
+
+Analiza este perfil profesional y genera 5 oportunidades laborales específicas para esta persona.
+
+PERFIL:
+- Nombre: {candidato.nombre}
+- Cargo: {candidato.cargo_actual}
+- Experiencia: {candidato.años_experiencia} años
+- Ciudad: {candidato.ciudad}, {candidato.pais.nombre}
+- Sectores: {sectores}
+- Habilidades: {habilidades}
+- Resumen: {candidato.resumen[:300] if candidato.resumen else 'No especificado'}
+- Idiomas: {idiomas}
+- Disponibilidad: {candidato.get_disponibilidad_display()}
+- Modalidad: {candidato.get_modalidad_display()}
+
+INSTRUCCIONES:
+- Genera 5 oportunidades laborales MUY ESPECÍFICAS para este perfil en Colombia y Latinoamérica
+- Los terminos_busqueda deben ser cortos y precisos para encontrar la oferta en Google
+- Responde ÚNICAMENTE con JSON válido sin texto adicional ni markdown
+
+FORMATO JSON ESTRICTO:
+{{
+  "ofertas": [
+    {{
+      "titulo": "Cargo específico",
+      "tipo_empresa": "Tipo de empresa donde aplica",
+      "ubicacion": "Ciudad o modalidad",
+      "por_que_coincide": "Por qué este perfil es ideal en 1 línea",
+      "terminos_busqueda": "Términos cortos y precisos para buscar esta oferta",
+      "salario_estimado": "Rango salarial estimado en COP"
+    }}
+  ]
+}}"""
+
+    try:
+        import requests as req
+        import time as _time
+        api_key = settings.GEMINI_API_KEY
+
+        payload = {
+            'contents': [{'parts': [{'text': prompt}]}],
+        }
+
+        modelos_cache = cache.get('gemini_modelos_disponibles')
+        if not modelos_cache:
+            try:
+                r = req.get(
+                    f'https://generativelanguage.googleapis.com/v1beta/models?key={api_key}',
+                    timeout=10
+                )
+                todos = r.json().get('models', [])
+                modelos_cache = [
+                    m['name'].replace('models/', '')
+                    for m in todos
+                    if 'generateContent' in m.get('supportedGenerationMethods', [])
+                    and any(x in m['name'] for x in ['flash', 'pro'])
+                    and 'vision' not in m['name']
+                    and 'embedding' not in m['name']
+                ]
+                modelos_cache.sort(key=lambda x: (0 if 'flash' in x else 1))
+                cache.set('gemini_modelos_disponibles', modelos_cache, 60 * 60 * 6)
+            except Exception:
+                modelos_cache = ['gemini-flash-latest', 'gemini-pro-latest']
+
+        texto = None
+        ultimo_error = ''
+        for modelo in modelos_cache:
+            url = f'https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}'
+            for intento in range(2):
+                try:
+                    resp = req.post(url, json=payload, timeout=30)
+                    data = resp.json()
+                    if 'candidates' in data:
+                        texto = data['candidates'][0]['content']['parts'][0]['text']
+                        break
+                    error_code = data.get('error', {}).get('code', 0)
+                    ultimo_error = data.get('error', {}).get('message', '')
+                    if error_code == 503:
+                        _time.sleep(3)
+                        continue
+                    break
+                except Exception as ex:
+                    ultimo_error = str(ex)
+                    break
+            if texto:
+                break
+
+        if not texto:
+            raise ValueError('IA no disponible en este momento. Intenta en unos minutos.')
+
+        texto_limpio = texto.strip().replace('```json', '').replace('```', '').strip()
+        resultado = _json.loads(texto_limpio)
+        ofertas = resultado.get('ofertas', [])
+
+    except Exception as e:
+        messages.error(request, f'Error al procesar la búsqueda: {str(e)}')
+        return redirect('buscar_ofertas_ia')
+
+    candidato.busquedas_ia_usadas += 1
+    candidato.busquedas_ia_reset  = hoy
+    candidato.save(update_fields=['busquedas_ia_usadas', 'busquedas_ia_reset'])
+
+    return render(request, 'talent_app/buscar_ofertas_ia.html', {
+        'candidato': candidato,
+        'disponibles': candidato.busquedas_ia_disponibles,
+        'ofertas': ofertas,
+    })
 
 def privacidad(request):
     return render(request, 'talent_app/privacidad.html')

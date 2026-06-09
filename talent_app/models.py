@@ -138,6 +138,23 @@ class Candidato(models.Model):
     embedding                = VectorField(dimensions=768, null=True, blank=True, editable=False)
     embedding_modelo         = models.CharField(max_length=100, blank=True, default='', editable=False)
     embedding_actualizado_en = models.DateTimeField(null=True, blank=True, editable=False)
+    # Búsquedas de ofertas laborales con IA
+    busquedas_ia_usadas = models.PositiveSmallIntegerField(default=0)
+    busquedas_ia_limite = models.PositiveSmallIntegerField(default=2)
+    busquedas_ia_reset  = models.DateField(null=True, blank=True)
+
+    @property
+    def busquedas_ia_disponibles(self):
+        from django.utils import timezone
+        hoy = timezone.now().date()
+        if not self.busquedas_ia_reset or self.busquedas_ia_reset.month != hoy.month or self.busquedas_ia_reset.year != hoy.year:
+            return self.busquedas_ia_limite
+        return max(0, self.busquedas_ia_limite - self.busquedas_ia_usadas)
+
+    @property
+    def tiene_busquedas_ia(self):
+        return self.busquedas_ia_disponibles > 0
+
 
     class Meta:
         ordering = ['-creado_en']
