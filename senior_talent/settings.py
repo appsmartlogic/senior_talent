@@ -117,6 +117,22 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 IPAPI_URL    = 'https://ipapi.co/{ip}/json/'
 PAIS_DEFAULT = 'CO'
 
+# --------------------------------------------------------------
+# BUSCADOR — interruptor de búsqueda con texto_busqueda
+# False = búsqueda actual (unaccent en 8 campos, comportamiento original)
+# True  = búsqueda nueva con campo texto_busqueda + índice GIN trigramas
+# Para apagar: poner en False y reiniciar Gunicorn
+# --------------------------------------------------------------
+# --------------------------------------------------------------
+# BUSCADOR — modo activo
+# 'old'      = búsqueda vieja con unaccent en 8 campos (red de seguridad)
+# 'fulltext' = búsqueda con texto_busqueda + índice GIN (fase 1, rápida)
+# 'hybrid'   = híbrido: fulltext para keywords + semántica para frases
+#              naturales (fase 3, IA solo cuando vale la pena)
+# Para apagar todo y volver al estado original: 'old' + reiniciar Gunicorn.
+# --------------------------------------------------------------
+SEARCH_MODE = 'hybrid'
+
 # -- Celery ---------------------------------------------------
 CELERY_BROKER_URL        = 'redis://127.0.0.1:6379/2'
 CELERY_RESULT_BACKEND    = 'django-db'

@@ -220,6 +220,31 @@ class CandidatoAdmin(admin.ModelAdmin):
 
                         </div>
 
+                        <div style="background:#0A0A2E;border-radius:8px;padding:20px 24px;margin:24px 0;">
+                            <p style="color:#FFD700;font-weight:bold;font-size:15px;margin:0 0 8px;">🚀 ¡Ahora puedes explorar ofertas laborales reales con Inteligencia Artificial!</p>
+                            <p style="color:#ccc;font-size:14px;line-height:1.7;margin:0 0 16px;">
+                                Desde tu panel encontrarás el botón <strong style="color:#FFD700;">"Buscar ofertas →"</strong>
+                                que analiza tu perfil completo y genera oportunidades laborales personalizadas para ti,
+                                con los términos exactos para encontrarlas en las principales bolsas de empleo del mundo.
+                                Sin buscar manualmente. Sin perder tiempo.
+                            </p>
+                            <div style="text-align:center;">
+                                <a href="https://talent.smartlogicapp.com/dashboard/buscar-ofertas/"
+                                   style="background:#FFD700;color:#0A0A2E;padding:12px 28px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:14px;display:inline-block;">
+                                    🔍 Buscar mis ofertas con IA →
+                                </a>
+                            </div>
+                        </div>
+
+                        <div style="background:#E1F5EE;border-radius:8px;padding:16px 20px;margin:24px 0;">
+                            <p style="color:#0F6E56;font-weight:bold;font-size:14px;margin:0 0 8px;">🏢 Las empresas también te buscan a ti</p>
+                            <p style="color:#444;font-size:14px;line-height:1.7;margin:0;">
+                                Tu perfil es visible en nuestro directorio profesional. Las empresas registradas en SeniorTalent
+                                pueden encontrarte, revisar tu experiencia y contactarte directamente.
+                                <strong>No tienes que ir a buscar empleo — deja que tu talento hable por ti.</strong>
+                            </p>
+                        </div>
+
                         <div style="background:#f0f7ff;border:1px solid #d0e8ff;border-radius:8px;padding:16px 20px;margin:24px 0;">
                             <p style="margin:0 0 8px;color:#0A0A2E;font-weight:bold;font-size:14px;">🔒 Tu privacidad es nuestra prioridad</p>
                             <ul style="margin:0;padding-left:18px;color:#444;font-size:14px;line-height:1.9;">
