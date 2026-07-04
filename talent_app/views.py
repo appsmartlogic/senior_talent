@@ -390,10 +390,7 @@ def registro_empresa(request):
         pais_id        = request.POST.get('pais')
         num_tributario = request.POST.get('num_tributario', '').strip()
 
-        dominio = email.split('@')[-1] if '@' in email else ''
-        if dominio in EMAILS_BLOQUEADOS:
-            messages.error(request, 'Debes usar un correo corporativo (no Gmail, Hotmail, etc.).')
-            return render(request, 'talent_app/registro_empresa.html', {'paises': paises})
+        # Correo libre — se aceptan todos los proveedores
 
         if Usuario.objects.filter(email=email).exists():
             messages.error(request, 'Ya existe una cuenta con ese correo.')
@@ -444,7 +441,7 @@ def registro_empresa(request):
                         <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">NIT / Tributario</td><td style="padding:8px 0;font-size:14px;">{num_tributario}</td></tr>
                     </table>
                     <div style="text-align:center;margin-top:28px;">
-                        <a href="https://talent.smartlogicapp.com/admin/talent_app/empresa/"
+                        <a href="https://talent.smartlogicapp.com/gestion-st-2026/talent_app/empresa/"
                         style="background:#0A0A2E;color:#FFD700;padding:12px 28px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:14px;">
                             Ver en el Admin →
                         </a>

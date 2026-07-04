@@ -78,11 +78,6 @@
     <div class="auth-logo">Senior<span>Talent</span></div>
     <div class="auth-subtitle">Accede al mejor talento senior de Latinoamérica</div>
 
-    <div class="aviso-privacidad">
-      <strong>Importante:</strong> Solo se aceptan correos corporativos.
-      No se permiten Gmail, Hotmail, Yahoo ni similares.
-    </div>
-
     <form method="post">
       {% csrf_token %}
 
@@ -93,9 +88,9 @@
       </div>
 
       <div class="form-group">
-        <label>Correo corporativo</label>
+        <label>Correo electrónico</label>
         <input type="email" name="email" class="form-control"
-               placeholder="rrhh@tuempresa.com" required>
+               placeholder="contacto@tuempresa.com" required>
       </div>
 
       <div class="form-group">
@@ -118,11 +113,11 @@
           </select>
         </div>
         <div class="form-group">
-          <label id="label-nit">NIT / Número tributario</label>
+          <label id="label-nit">NIT / RIF</label>
           <input type="text" name="num_tributario" class="form-control"
                  placeholder="900123456-1" required id="input-nit">
           <div class="nit-label" id="nit-hint">
-            Selecciona un país para ver el formato
+            Colombia: NIT · Venezuela: RIF
           </div>
         </div>
       </div>
