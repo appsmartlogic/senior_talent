@@ -69,6 +69,11 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 0,
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+        'DISABLE_SERVER_SIDE_CURSORS': True,
     }
 }
 
@@ -233,3 +238,20 @@ AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
 
 ]
+
+# -- Ofertas laborales automáticas ----------------------------
+SERPAPI_API_KEY    = os.getenv('SERPAPI_API_KEY', '')
+ADZUNA_APP_ID      = os.getenv('ADZUNA_APP_ID', '')
+ADZUNA_APP_KEY     = os.getenv('ADZUNA_APP_KEY', '')
+GOOGLE_CSE_API_KEY = os.getenv('GOOGLE_CSE_API_KEY', '')
+GOOGLE_CSE_ID      = os.getenv('GOOGLE_CSE_ID', '')
+
+# -- Celery Beat — tareas programadas -------------------------
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'ofertas-laborales-nocturnas': {
+        'task': 'talent_app.tasks.enviar_ofertas_laborales_task',
+        # Lunes a viernes, 11pm hora Bogotá
+        'schedule': crontab(hour=23, minute=0, day_of_week='1-5'),
+    },
+}

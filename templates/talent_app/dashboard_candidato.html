@@ -76,33 +76,15 @@
     </div>
   {% endif %}
 
-  <!-- BÚSQUEDA DE OFERTAS CON IA -->
+  <!-- OFERTAS AUTOMÁTICAS POR EMAIL -->
   <div class="seccion" style="background:linear-gradient(135deg,#0A0A2E 0%,#1a1a4e 100%);border:none;margin-bottom:24px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div style="font-size:28px;">🎯</div>
           <div>
-              <h2 style="color:#FFD700;font-size:16px;font-weight:700;margin:0 0 4px;">🔍 Buscar ofertas laborales con IA</h2>
-              <p style="color:#ccc;font-size:13px;margin:0;">
-                  Nuestra IA analiza tu perfil completo y encuentra oportunidades reales en internet para ti.
+              <h2 style="color:#FFD700;font-size:16px;font-weight:700;margin:0 0 4px;">Ofertas laborales en tu correo</h2>
+              <p style="color:#ccc;font-size:13px;margin:0;line-height:1.6;">
+                  Nuestra IA busca ofertas reales según tu perfil y te las envía automáticamente cada semana. No tienes que hacer nada.
               </p>
-          </div>
-          <div style="text-align:right;">
-              {% if candidato.busquedas_ia_disponibles > 0 %}
-                  <a href="{% url 'buscar_ofertas_ia' %}"
-                    style="background:#FFD700;color:#0A0A2E;padding:10px 22px;border-radius:8px;font-weight:700;text-decoration:none;font-size:14px;display:inline-block;">
-                      Buscar ofertas →
-                  </a>
-                  <div style="color:#aaa;font-size:12px;margin-top:6px;">
-                      Te quedan <strong style="color:#FFD700;">{{ candidato.busquedas_ia_disponibles }}</strong> búsqueda(s) este mes
-                  </div>
-              {% else %}
-                  <button disabled
-                      style="background:#444;color:#888;padding:10px 22px;border-radius:8px;font-weight:700;font-size:14px;border:none;cursor:not-allowed;">
-                      Sin búsquedas disponibles
-                  </button>
-                  <div style="color:#888;font-size:12px;margin-top:6px;">
-                      Vuelve el próximo mes para nuevas búsquedas
-                  </div>
-              {% endif %}
           </div>
       </div>
   </div>

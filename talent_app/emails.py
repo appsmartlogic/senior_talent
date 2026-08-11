@@ -55,3 +55,37 @@ def enviar_email_empresa_activa(empresa):
     )
     msg.attach_alternative(html, 'text/html')
     msg.send(fail_silently=True)
+
+
+def enviar_email_ofertas_laborales(candidato, ofertas: list):
+    """
+    Envía email al candidato con las 3 mejores ofertas laborales
+    seleccionadas por IA según su perfil.
+    Solo se llama desde la tarea Celery nocturna.
+    Función nueva — no modifica nada existente.
+    """
+    if not ofertas:
+        return
+
+    asunto = f'🎯 {len(ofertas)} oportunidades laborales encontradas para ti'
+    from talent_app.models import IdiomaCandiato
+    idiomas_qs = IdiomaCandiato.objects.filter(candidato=candidato)
+    idiomas_lista = [i.idioma.lower() for i in idiomas_qs]
+    habla_ingles = any('ingl' in i for i in idiomas_lista)
+
+    html = render_to_string('talent_app/emails/ofertas_laborales.html', {
+        'candidato': candidato,
+        'ofertas': ofertas,
+        'solo_espanol': not habla_ingles and candidato.modalidad == 'remoto',
+    })
+    msg = EmailMultiAlternatives(
+        subject=asunto,
+        body=(
+            f'Hola {candidato.nombre}, encontramos {len(ofertas)} '
+            f'oportunidades que coinciden con tu perfil en SeniorTalent.'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[candidato.usuario.email],
+    )
+    msg.attach_alternative(html, 'text/html')
+    msg.send(fail_silently=True)

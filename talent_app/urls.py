@@ -18,7 +18,6 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/perfil/', views.editar_perfil, name='editar_perfil'),
     path('dashboard/cv/subir/', views.subir_cv_ia, name='subir_cv_ia'),
-    path('dashboard/buscar-ofertas/', views.buscar_ofertas_ia, name='buscar_ofertas_ia'),
 
     # Dashboard empresa
     path('empresa/candidatos/', views.empresa_candidatos, name='empresa_candidatos'),

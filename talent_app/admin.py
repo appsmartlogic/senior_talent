@@ -292,8 +292,10 @@ class CandidatoAdmin(admin.ModelAdmin):
         enviados = 0
         for candidato in queryset:
             try:
+                whatsapp_msg = f"Hola Juan, soy {candidato.nombre} registrado en SeniorTalent. Necesito ayuda para completar mi perfil. Te adjunto mi hoja de vida."
+                whatsapp_url = f"https://wa.me/573229655025?text={whatsapp_msg.replace(' ', '%20')}"
                 send_mail(
-                    subject='Acción requerida: revisa tu perfil en SeniorTalent',
+                    subject='Te ayudamos a completar tu perfil en SeniorTalent',
                     message='',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[candidato.usuario.email],
@@ -308,41 +310,43 @@ class CandidatoAdmin(admin.ModelAdmin):
                         <p style="color:#333;font-size:15px;line-height:1.6;">Hola, <strong>{candidato.nombre}</strong>,</p>
 
                         <p style="color:#333;font-size:15px;line-height:1.6;">
-                            Revisamos tu perfil en <strong>SeniorTalent</strong> y notamos que algunos datos
-                            no se guardaron correctamente o están incompletos.
+                            Notamos que tu perfil en <strong>SeniorTalent</strong> quedó incompleto.
+                            Queremos ayudarte a terminarlo para que las empresas puedan encontrarte y contactarte.
                         </p>
 
                         <div style="background:#fff8e1;border-left:4px solid #FFD700;padding:16px 20px;margin:24px 0;border-radius:4px;">
-                            <p style="margin:0 0 8px;color:#0A0A2E;font-weight:bold;font-size:14px;">¿Qué debes hacer?</p>
+                            <p style="margin:0 0 8px;color:#0A0A2E;font-weight:bold;font-size:14px;">¿Cómo completar tu perfil?</p>
                             <ol style="margin:0;padding-left:18px;color:#444;font-size:14px;line-height:1.9;">
                                 <li>Ingresa con tu correo <strong>{candidato.usuario.email}</strong></li>
                                 <li>Ve a <strong>Editar perfil</strong></li>
-                                <li>Revisa que tus datos estén completos y correctos</li>
-                                <li>Haz clic en <strong>Guardar</strong> para confirmar</li>
+                                <li>Sube tu hoja de vida en PDF — nuestra IA llena los datos automáticamente</li>
+                                <li>Revisa que todo esté correcto y haz clic en <strong>Guardar</strong></li>
                             </ol>
                         </div>
 
-                        <p style="color:#333;font-size:14px;line-height:1.6;background:#f7f7f7;padding:12px 16px;border-radius:6px;">
-                            Verifica especialmente: cargo actual, resumen profesional, sectores, habilidades e idiomas.
-                            Estos campos son los que las empresas ven primero al buscar talento.
-                        </p>
-
-                        <div style="text-align:center;margin:32px 0;">
+                        <div style="text-align:center;margin:28px 0;">
                             <a href="https://talent.smartlogicapp.com/dashboard/perfil/"
                                style="background:#FFD700;color:#0A0A2E;padding:14px 32px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:15px;display:inline-block;">
-                                Revisar mi perfil →
+                                Completar mi perfil →
                             </a>
                         </div>
 
-                        <p style="color:#333;font-size:15px;line-height:1.6;">
-                            Si tienes dudas o necesitas ayuda, responde este correo y te asistimos de inmediato.
-                        </p>
+                        <div style="background:#f0fdf4;border:1px solid #9FE1CB;border-radius:8px;padding:20px 24px;margin:24px 0;text-align:center;">
+                            <p style="color:#0F6E56;font-weight:bold;font-size:15px;margin:0 0 8px;">¿Necesitas ayuda personalizada?</p>
+                            <p style="color:#444;font-size:14px;line-height:1.6;margin:0 0 16px;">
+                                Si tienes dificultades completando tu perfil, escríbenos por WhatsApp.<br>
+                                <strong>Envíanos tu hoja de vida y nosotros te ayudamos a configurarlo.</strong>
+                            </p>
+                            <a href="{whatsapp_url}"
+                               style="background:#25D366;color:#fff;padding:12px 28px;border-radius:6px;font-weight:bold;text-decoration:none;font-size:14px;display:inline-block;">
+                                💬 Pedir ayuda por WhatsApp →
+                            </a>
+                        </div>
 
                         <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
                         <p style="color:#333;font-size:14px;margin:0;">Atentamente,</p>
                         <p style="color:#0A0A2E;font-weight:bold;font-size:14px;margin:4px 0 0;">Equipo SeniorTalent</p>
                         <p style="margin:4px 0 0;"><a href="https://talent.smartlogicapp.com" style="color:#888;font-size:13px;">talent.smartlogicapp.com</a></p>
-
                         <p style="color:#bbb;font-size:11px;margin-top:24px;text-align:center;">
                             Recibiste este correo porque tienes una cuenta registrada en SeniorTalent.
                         </p>
@@ -361,6 +365,7 @@ class CandidatoAdmin(admin.ModelAdmin):
             level=messages.SUCCESS
         )
 
+        
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
     list_display  = ('nombre', 'pais', 'num_tributario', 'estado', 'creado_en')

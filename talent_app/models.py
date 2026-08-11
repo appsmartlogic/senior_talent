@@ -143,6 +143,12 @@ class Candidato(models.Model):
     busquedas_ia_limite = models.PositiveSmallIntegerField(default=2)
     busquedas_ia_reset  = models.DateField(null=True, blank=True)
 
+    # ── Ofertas laborales automáticas ──────────────────────────
+    # Fecha del último email de ofertas enviado al candidato.
+    # NULL = nunca ha recibido. Se usa para rotar candidatos
+    # y no repetir envíos consecutivos.
+    ultima_oferta_enviada = models.DateField(null=True, blank=True, editable=False)
+
     @property
     def busquedas_ia_disponibles(self):
         from django.utils import timezone
